@@ -1,7 +1,5 @@
 {:nrepl {:port 8777}
 
- 
-
  :source-paths ["src" "test"]
 
  :dependencies
@@ -24,10 +22,8 @@
    :modules
    {:app {:init-fn dash.core/init}}
    :devtools
-   {:preloads [
-               re-frisk.preload]}
+   {:preloads [re-frisk.preload]}
    :dev
    {:compiler-options
     {:closure-defines
-     { 
-      re-com.config/root-url-for-compiler-output "http://localhost:8290/js/compiled/app/cljs-runtime/"}}}}}}
+     {re-com.config/root-url-for-compiler-output "http://localhost:8290/js/compiled/app/cljs-runtime/"}}}}}}

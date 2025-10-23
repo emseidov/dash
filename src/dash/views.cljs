@@ -2,8 +2,7 @@
   (:require
    [re-frame.core :as re-frame]
    [re-com.core :as re-com :refer [at]]
-   [dash.subs :as subs]
-   ))
+   [dash.subs :as subs]))
 
 (defn title []
   (let [name (re-frame/subscribe [::subs/name])]
@@ -16,5 +15,4 @@
   [re-com/v-box
    :src      (at)
    :height   "100%"
-   :children [[title]
-              ]])
+   :children [[title]]])

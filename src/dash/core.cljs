@@ -4,9 +4,7 @@
    [re-frame.core :as re-frame]
    [dash.events :as events]
    [dash.views :as views]
-   [dash.config :as config]
-   ))
-
+   [dash.config :as config]))
 
 (defn dev-setup []
   (when config/debug?
