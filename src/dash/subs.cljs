@@ -1,8 +1,8 @@
 (ns dash.subs
   (:require
-   [re-frame.core :as re-frame]))
+   [re-frame.core :refer [reg-sub]]))
 
-(re-frame/reg-sub
- ::name
+(reg-sub
+ :edit-mode?
  (fn [db]
-   (:name db)))
+   (:edit-mode? db)))

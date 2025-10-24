@@ -1,9 +1,14 @@
 (ns dash.events
   (:require
-   [re-frame.core :as re-frame]
+   [re-frame.core :refer [reg-event-db]]
    [dash.db :as db]))
 
-(re-frame/reg-event-db
+(reg-event-db
  ::initialize-db
  (fn [_ _]
    db/default-db))
+
+(reg-event-db
+ :toggle-edit-mode
+ (fn [db _]
+   (update db :edit-mode? not)))

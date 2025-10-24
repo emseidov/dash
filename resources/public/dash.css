@@ -1,0 +1,31 @@
+html,
+body,
+#app {
+  height: 100%;
+}
+
+.dash {
+  height: 100%;
+  width: 100%;
+  padding: 15px;
+
+  .edit-btn {
+    width: 100px;
+  }
+
+  .main {
+    height: calc(100% - 76px);
+    border: 1px solid lightgray;
+    border-radius: 4px;
+    padding: 5px;
+
+    &.edit-mode {
+      background-color: #fff4f4;
+      border-style: dashed;
+    }
+  }
+
+  .v-box {
+    background-color: #fff4f4cc;
+  }
+}
