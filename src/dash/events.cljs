@@ -13,7 +13,27 @@
  (fn [db _]
    (update db :edit-mode? not)))
 
+(defn add-widget-to-tree [tree id parent-id new-widget]
+  (mapv
+   (fn [node]
+     (if (= (:id node) parent-id)
+       (update node :children (fnil conj []) new-widget)
+       (if (:children node)
+         (assoc node :children (add-widget-to-tree (:children node) id parent-id new-widget))
+         node)))
+   tree))
+
+;; (reg-event-db
+;;  :add-widget
+;;  (fn [db [_ widget]]
+;;    (update db :widgets conj widget)))
+
 (reg-event-db
  :add-widget
- (fn [db [_ widget]]
-   (update db :widgets conj widget)))
+ (fn [db [_ widget-name id parent-id]]
+   (let [new-widget {:id id
+                     :parent-id parent-id
+                     :name widget-name}]
+     (if parent-id
+       (update db :widgets add-widget-to-tree id parent-id new-widget)
+       (update db :widgets conj new-widget)))))

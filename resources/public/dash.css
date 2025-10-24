@@ -20,7 +20,7 @@ body,
     padding: 5px;
 
     &.edit-mode {
-      background-color: rgba(255, 244, 244, 0.5);
+      background-color: rgba(255, 244, 244, 1);
       border-style: dashed;
     }
   }
@@ -28,6 +28,6 @@ body,
   .h-box {
     border: 1px solid lightgray;
     border-radius: 4px;
-    background-color: #fff4f4cc;
+    background-color: #fff;
   }
 }

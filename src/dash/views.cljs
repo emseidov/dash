@@ -26,7 +26,7 @@
    :justify :between
    :children [[title] [edit-mode-btn]]])
 
-(defn widget-list []
+(defn widget-list [{:keys [parent-id]}]
   (let [selected (reagent/atom #{})]
     (fn []
       [re-com/selection-list
@@ -38,14 +38,14 @@
                  {:id :table :label "table"}]
        :on-change (fn [x]
                     (reset! selected x)
-                    (dispatch [:add-widget (first x)]))])))
+                    (dispatch [:add-widget (first x) (random-uuid) parent-id]))])))
 
-(defn widget-modal [{:keys [backdrop-on-click]}]
+(defn widget-modal [{:keys [backdrop-on-click parent-id]}]
   [re-com/modal-panel
    :backdrop-on-click #(backdrop-on-click)
-   :child [widget-list]])
+   :child [widget-list {:parent-id parent-id}]])
 
-(defn add-btn []
+(defn add-btn [{:keys [parent-id]}]
   (let [show? (reagent/atom false)]
     (fn []
       [:<>
@@ -54,16 +54,17 @@
         :on-click #(reset! show? true)]
        (when @show?
          [widget-modal
-          {:backdrop-on-click #(reset! show? false)}])])))
+          {:backdrop-on-click #(reset! show? false)
+           :parent-id parent-id}])])))
 
-(defn h-box []
+(defn h-box [{:keys [parent-id]}]
   [re-com/h-box
    :class "h-box"
    :width "100%"
    :align :center
    :padding "4px"
    :min-height "50px"
-   :children [[add-btn]]])
+   :children [[add-btn {:parent-id parent-id}]]])
 
 (defn dropdown []
   (let [model (reagent/atom :a)
@@ -72,6 +73,7 @@
                  {:id :c :label "Choice C"}]]
     [re-com/single-dropdown
      :choices choices
+     :width "300px"
      :model @model
      :on-change #(reset! model %)]))
 
@@ -96,25 +98,50 @@
    :button button
    :table table})
 
+(defn render-widgets [widgets]
+  (map
+   (fn [{:keys [id name children parent-id]}]
+     (let [view (get widget-views name)]
+       (if (= name :h-box)
+          ;; For h-box, pass parent-id and render children
+         ^{:key id}
+         [view {:parent-id parent-id}
+          (when (seq children)
+            (render-widgets children))]
+          ;; For leaf widgets
+         ^{:key id}
+         [view])))
+   widgets))
+
+(defn render-widget [{:keys [id name children]} edit-mode?]
+  (let [view (get widget-views name)]
+    (if view
+      (if (= name :h-box)
+        ;; For containers, pass parent-id and render children
+        [view {:parent-id id}
+         (when (seq children)
+           (for [child children]
+             ^{:key (:id child)}
+             (render-widget child edit-mode?)))]
+        ;; For leaf widgets
+        [view])
+      [:div "Unknown widget: " (pr-str name)])))
+
 (defn main []
   (let [edit-mode? @(subscribe [:edit-mode?])
         class (str/join " " ["main" (when edit-mode? "edit-mode")])
-        widgets @(subscribe [:widgets])
-        items (if edit-mode?
-                [(map (fn [w]
-                        ^{:key (if (map? w) (:id w) w)}
-                        [(get widget-views (if (map? w) (:id w) w))])
-                      widgets)
-                 [add-btn]]
-                [(map (fn [w]
-                        ^{:key (if (map? w) (:id w) w)}
-                        [(get widget-views (if (map? w) (:id w) w))])
-                      widgets)])]
+        widgets @(subscribe [:widgets])]
     [re-com/v-box
      :class class
      :width "100%"
-     :children items]))
-
+     :children
+     (concat
+      (for [w widgets]
+        ^{:key (:id w)}
+        (render-widget w edit-mode?))
+      (when edit-mode?
+        [[add-btn {:parent-id nil}]]))]))
+;
 (defn app []
   [re-com/v-box
    :class "dash"
