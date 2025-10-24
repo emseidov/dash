@@ -27,16 +27,21 @@
    :children [[title] [edit-mode-btn]]])
 
 (defn widget-list []
-  [:div
-   "hello there.."])
-  ;; [re-com/selection-list
-  ;;  :multi-select false
-  ;;  :selection-list ["v-box", "dropdown", "button", "table"]])
+  (let [selected (reagent/atom #{})]
+    (fn []
+      [re-com/selection-list
+       :multi-select? false
+       :model @selected
+       :choices [{:id 1 :label "v-box"}
+                 {:id 2 :label "dropdown"}
+                 {:id 3 :label "button"}
+                 {:id 4 :label "table"}]
+       :on-change #(reset! selected %)])))
 
-(defn widget-modal [backdrop-on-click]
+(defn widget-modal [{:keys [backdrop-on-click]}]
   [re-com/modal-panel
    :backdrop-on-click #(backdrop-on-click)
-   :child [:span "hellooo??"]])
+   :child [widget-list]])
 
 (defn add-btn []
   (let [show? (reagent/atom false)]
@@ -46,9 +51,8 @@
                    :md-icon-name "zmdi-plus"
                    :on-click #(reset! show? true)]
                   (when @show?
-                    [re-com/modal-panel
-                     :backdrop-on-click #(reset! show? false)
-                     :child             [:span "Hey there..."]])]])))
+                    [widget-modal
+                     {:backdrop-on-click #(reset! show? false)}])]])))
 
 (defn v-box []
   [re-com/v-box
