@@ -6,3 +6,8 @@
  :edit-mode?
  (fn [db]
    (:edit-mode? db)))
+
+(reg-sub
+ :widgets
+ (fn [db]
+   (:widgets db)))

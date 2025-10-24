@@ -12,3 +12,8 @@
  :toggle-edit-mode
  (fn [db _]
    (update db :edit-mode? not)))
+
+(reg-event-db
+ :add-widget
+ (fn [db [_ widget]]
+   (update db :widgets conj widget)))

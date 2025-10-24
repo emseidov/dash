@@ -1,4 +1,5 @@
 (ns dash.db)
 
 (def default-db
-  {:edit-mode? false})
+  {:edit-mode? false
+   :widgets []})
