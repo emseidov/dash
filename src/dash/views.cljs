@@ -6,6 +6,8 @@
    [reagent.core :as reagent]
    [dash.subs :as subs]))
 
+(declare render-widget)
+
 (defn title []
   [re-com/title
    :label "Dashboard"
@@ -57,14 +59,17 @@
           {:backdrop-on-click #(reset! show? false)
            :parent-id parent-id}])])))
 
-(defn h-box [{:keys [parent-id]}]
+(defn h-box [{:keys [parent-id children]}]
   [re-com/h-box
    :class "h-box"
    :width "100%"
    :align :center
    :padding "4px"
    :min-height "50px"
-   :children [[add-btn {:parent-id parent-id}]]])
+   :children [(when (seq children)
+                (for [child children]
+                  ^{:key (:id child)}
+                  (render-widget child))) [add-btn {:parent-id parent-id}]]])
 
 (defn dropdown []
   (let [model (reagent/atom :a)
@@ -98,31 +103,12 @@
    :button button
    :table table})
 
-(defn render-widgets [widgets]
-  (map
-   (fn [{:keys [id name children parent-id]}]
-     (let [view (get widget-views name)]
-       (if (= name :h-box)
-          ;; For h-box, pass parent-id and render children
-         ^{:key id}
-         [view {:parent-id parent-id}
-          (when (seq children)
-            (render-widgets children))]
-          ;; For leaf widgets
-         ^{:key id}
-         [view])))
-   widgets))
-
-(defn render-widget [{:keys [id name children]} edit-mode?]
+(defn render-widget [{:keys [id name children]}]
   (let [view (get widget-views name)]
     (if view
       (if (= name :h-box)
         ;; For containers, pass parent-id and render children
-        [view {:parent-id id}
-         (when (seq children)
-           (for [child children]
-             ^{:key (:id child)}
-             (render-widget child edit-mode?)))]
+        [view {:parent-id id :children children}]
         ;; For leaf widgets
         [view])
       [:div "Unknown widget: " (pr-str name)])))
@@ -130,18 +116,19 @@
 (defn main []
   (let [edit-mode? @(subscribe [:edit-mode?])
         class (str/join " " ["main" (when edit-mode? "edit-mode")])
-        widgets @(subscribe [:widgets])]
+        widgets @(subscribe [:widgets])
+        items (concat
+               (for [w widgets]
+                 ^{:key (:id w)}
+                 (render-widget w)))]
+    (prn items)
     [re-com/v-box
      :class class
      :width "100%"
-     :children
-     (concat
-      (for [w widgets]
-        ^{:key (:id w)}
-        (render-widget w edit-mode?))
-      (when edit-mode?
-        [[add-btn {:parent-id nil}]]))]))
-;
+     :children [items
+                (when edit-mode?
+                  [add-btn {:parent-id nil}])]]))
+
 (defn app []
   [re-com/v-box
    :class "dash"
