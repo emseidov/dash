@@ -11,3 +11,8 @@
  :widgets
  (fn [db]
    (:widgets db)))
+
+(reg-sub
+ :show-config-modal?
+ (fn [db]
+   (:show-config-modal? db)))

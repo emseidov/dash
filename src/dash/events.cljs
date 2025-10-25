@@ -37,3 +37,13 @@
      (if parent-id
        (update db :widgets add-widget-to-tree id parent-id new-widget)
        (update db :widgets conj new-widget)))))
+
+(reg-event-db
+ :show-config-modal
+ (fn [db _]
+   (assoc db :show-config-modal? true)))
+
+(reg-event-db
+ :hide-config-modal
+ (fn [db _]
+   (assoc db :show-config-modal? false)))

@@ -1,7 +1,7 @@
 (ns dash.views
   (:require
    [clojure.string :as str]
-   [re-frame.core :refer [subscribe dispatch]]
+   [re-frame.core :as re-frame :refer [subscribe dispatch]]
    [re-com.core :as re-com]
    [reagent.core :as reagent]
    [dash.subs :as subs]))
@@ -13,20 +13,65 @@
    :label "Dashboard"
    :level :level1])
 
-(defn edit-mode-btn []
-  (let [edit-mode? @(subscribe [:edit-mode?])
-        label (str "Mode: " (if edit-mode? "Edit" "View"))]
+(defn mode-btn []
+  (let [edit-mode? (re-frame/subscribe [:edit-mode?])
+        label (str "Mode: " (if @edit-mode? "Edit" "View"))]
     [re-com/button
-     :style {:width "100px"}
      :label label
-     :on-click #(dispatch [:toggle-edit-mode])]))
+     :style {:width "100px"}
+     :on-click #(re-frame/dispatch [:toggle-edit-mode])]))
+
+(def cities [{:id :sydney    :label "Sydney" :group [:oceania :australia :nsw]}
+             {:id :newcastle    :label "Newcastle" :group [:oceania :australia :nsw]}
+             {:id :central-coast    :label "Central Coast" :group [:oceania :australia :nsw]}
+             {:id :wollongong    :label "Wollongong" :group [:oceania :australia :nsw]}
+             {:id :melbourne :label "Melbourne" :group [:oceania :australia :victoria]}
+             {:id :geelong :label "Geelong" :group [:oceania :australia :victoria]}
+             {:id :ballarat :label "Ballarat" :group [:oceania :australia :victoria]}
+             {:id :christchurch :label "Christchurch" :group [:oceania :new-zealand :canterbury]}
+             {:id :auckland :label "Auckland" :group [:oceania :new-zealand]}
+             {:id :hamilton :label "Hamilton" :group [:oceania :new-zealand]}
+             {:id :wellington :label "Wellington" :group [:oceania :new-zealand :wellington]}
+             {:id :lower-hutt :label "Lower Hutt" :group [:oceania :new-zealand :wellington]}
+             {:id :atlantis :label "atlantis"}])
+
+(defn config-modal []
+  (let [selected (reagent/atom #{})]
+    [re-com/modal-panel
+     :backdrop-on-click #(re-frame/dispatch [:hide-config-modal])
+     :child [re-com/h-box
+             :width "600px"
+             :height "600px"
+             :children [[re-com/box
+                         :child [re-com/tree-select
+                                 :choices cities
+                                 :initial-expanded-groups :all
+                                 :model @selected
+                                 :on-change #(reset! selected %)]]
+                        [re-com/box
+                         :child [:span "Hello"]]]]]))
+
+(defn config-btn []
+  (let [show-config-modal? (re-frame/subscribe [:show-config-modal?])]
+    [:<>
+     [re-com/button
+      :label "Config"
+      :on-click #(re-frame/dispatch [:show-config-modal])]
+     (when @show-config-modal? [config-modal])]))
+
+(defn mode-btns []
+  (let [edit-mode? (re-frame/subscribe [:edit-mode?])]
+    [re-com/h-box
+     :align :center
+     :gap "10px"
+     :children [(when @edit-mode? [config-btn]) [mode-btn]]]))
 
 (defn header []
   [re-com/h-box
-   :width "100%"
    :align :center
    :justify :between
-   :children [[title] [edit-mode-btn]]])
+   :width "100%"
+   :children [[title] [mode-btns]]])
 
 (defn widget-list [{:keys [parent-id]}]
   (let [selected (reagent/atom #{})]
