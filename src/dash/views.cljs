@@ -60,16 +60,17 @@
            :parent-id parent-id}])])))
 
 (defn h-box [{:keys [parent-id children]}]
-  [re-com/h-box
-   :class "h-box"
-   :width "100%"
-   :align :center
-   :padding "4px"
-   :min-height "50px"
-   :children [(when (seq children)
-                (for [child children]
-                  ^{:key (:id child)}
-                  (render-widget child))) [add-btn {:parent-id parent-id}]]])
+  (let [edit-mode? @(subscribe [:edit-mode?])]
+    [re-com/h-box
+     :class "h-box"
+     :width "100%"
+     :align :center
+     :padding "8px"
+     :children [(when (seq children)
+                  (for [child children]
+                    ^{:key (:id child)}
+                    (render-widget child))) (when edit-mode?
+                                              [add-btn {:parent-id parent-id}])]]))
 
 (defn dropdown []
   (let [model (reagent/atom :a)
@@ -77,19 +78,35 @@
                  {:id :b :label "Choice B"}
                  {:id :c :label "Choice C"}]]
     [re-com/single-dropdown
+     :class "dropdown"
      :choices choices
      :width "300px"
      :model @model
      :on-change #(reset! model %)]))
 
 (defn table []
-  (let [columns [{:id :id :header-label "id" :row-label-fn (fn [row] (:id row)) :width 50}
-                 {:id :name :header-label "name" :row-label-fn (fn [row] (:name row)) :width 50}
-                 {:id :id :header-label "age" :row-label-fn (fn [row] (:age row)) :width 50}]
+  (let [columns [{:id :id :header-label "id" :row-label-fn (fn [row] (:id row)) :width 340}
+                 {:id :name :header-label "name" :row-label-fn (fn [row] (:name row)) :width 340}
+                 {:id :id :header-label "age" :row-label-fn (fn [row] (:age row)) :width 340}]
         model (reagent/atom [{:id 1 :name "Alice" :age 30}
+                             {:id 2 :name "Janice" :age 35}
+                             {:id 3 :name "Banice" :age 38}
+                             {:id 1 :name "Alice" :age 30}
+                             {:id 2 :name "Janice" :age 35}
+                             {:id 3 :name "Banice" :age 38}
+                             {:id 1 :name "Alice" :age 30}
+                             {:id 2 :name "Janice" :age 35}
+                             {:id 3 :name "Banice" :age 38}
+                             {:id 1 :name "Alice" :age 30}
+                             {:id 2 :name "Janice" :age 35}
+                             {:id 3 :name "Banice" :age 38}
+                             {:id 1 :name "Alice" :age 30}
+                             {:id 2 :name "Janice" :age 35}
+                             {:id 3 :name "Banice" :age 38}
                              {:id 2 :name "Janice" :age 35}
                              {:id 3 :name "Banice" :age 38}])]
     [re-com/simple-v-table
+     :class "table-widget"
      :columns columns
      :model model]))
 
@@ -121,7 +138,6 @@
                (for [w widgets]
                  ^{:key (:id w)}
                  (render-widget w)))]
-    (prn items)
     [re-com/v-box
      :class class
      :width "100%"
