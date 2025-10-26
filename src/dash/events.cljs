@@ -1,49 +1,44 @@
 (ns dash.events
   (:require
-   [re-frame.core :refer [reg-event-db]]
-   [dash.db :as db]))
+   [re-frame.core :as re-frame]
+   [dash.db :as db]
+   [dash.utils :as utils]))
 
-(reg-event-db
+(re-frame/reg-event-db
  ::initialize-db
  (fn [_ _]
    db/default-db))
 
-(reg-event-db
+(re-frame/reg-event-db
  :toggle-edit-mode
  (fn [db _]
    (update db :edit-mode? not)))
 
-(defn add-widget-to-tree [tree id parent-id new-widget]
-  (mapv
-   (fn [node]
-     (if (= (:id node) parent-id)
-       (update node :children (fnil conj []) new-widget)
-       (if (:children node)
-         (assoc node :children (add-widget-to-tree (:children node) id parent-id new-widget))
-         node)))
-   tree))
+(re-frame/reg-event-db
+ :set-show-widget-modal
+ (fn [db [_ value]]
+   (assoc db :show-widget-modal? value)))
 
-;; (reg-event-db
-;;  :add-widget
-;;  (fn [db [_ widget]]
-;;    (update db :widgets conj widget)))
-
-(reg-event-db
+(re-frame/reg-event-db
  :add-widget
- (fn [db [_ widget-name id parent-id]]
-   (let [new-widget {:id id
-                     :parent-id parent-id
-                     :name widget-name}]
-     (if parent-id
-       (update db :widgets add-widget-to-tree id parent-id new-widget)
-       (update db :widgets conj new-widget)))))
+ (fn [db [_ name id parent-id]]
+   (let [widget {:id id
+                 :parent-id parent-id
+                 :name name
+                 :children []}]
+     (update db :widgets utils/add-widget widget))))
 
-(reg-event-db
- :show-config-modal
- (fn [db _]
-   (assoc db :show-config-modal? true)))
+(re-frame/reg-event-db
+ :set-show-config-modal
+ (fn [db [_ value]]
+   (assoc db :show-config-modal? value)))
 
-(reg-event-db
- :hide-config-modal
- (fn [db _]
-   (assoc db :show-config-modal? false)))
+(re-frame/reg-event-db
+ :select-widget
+ (fn [db [_ selected-widget]]
+   (assoc db :selected-widget selected-widget)))
+
+(re-frame/reg-event-db
+ :set-current-container-id
+ (fn [db [_ id]]
+   (assoc db :current-container-id id)))

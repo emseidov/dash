@@ -1,18 +1,33 @@
 (ns dash.subs
   (:require
-   [re-frame.core :refer [reg-sub]]))
+   [re-frame.core :as re-frame]))
 
-(reg-sub
+(re-frame/reg-sub
  :edit-mode?
  (fn [db]
    (:edit-mode? db)))
 
-(reg-sub
+(re-frame/reg-sub
+ :show-widget-modal?
+ (fn [db]
+   (:show-widget-modal? db)))
+
+(re-frame/reg-sub
  :widgets
  (fn [db]
    (:widgets db)))
 
-(reg-sub
+(re-frame/reg-sub
  :show-config-modal?
  (fn [db]
    (:show-config-modal? db)))
+
+(re-frame/reg-sub
+ :selected-widget
+ (fn [db]
+   (:selected-widget db)))
+
+(re-frame/reg-sub
+ :current-container-id
+ (fn [db]
+   (:current-container-id db)))

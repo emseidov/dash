@@ -1,6 +1,12 @@
 (ns dash.db)
 
 (def default-db
-  {:edit-mode? false
+  {:current-container-id -1
+   :edit-mode? false
+   :selected-widget #{}
    :show-config-modal? false
-   :widgets []})
+   :show-widget-modal? false
+   :widgets {:name :root
+             :id -1
+             :parent-id -1
+             :children []}})

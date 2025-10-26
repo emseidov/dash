@@ -1,19 +1,151 @@
 (ns dash.views
   (:require
-   [clojure.string :as str]
-   [re-frame.core :as re-frame :refer [subscribe dispatch]]
+   [re-frame.core :as re-frame]
    [re-com.core :as re-com]
    [reagent.core :as reagent]
-   [dash.subs :as subs]))
+   [clojure.string :as str]
+   [dash.utils :as utils]
+   [dash.subs]))
 
-(declare render-widget)
+(declare add-widget-button widget-views)
 
-(defn title []
-  [re-com/title
-   :label "Dashboard"
-   :level :level1])
+(def dropdown-data [{:id :a :label "Choice A"}
+                    {:id :b :label "Choice B"}
+                    {:id :c :label "Choice C"}])
 
-(defn mode-btn []
+(def table-colums [{:id :id :header-label "id" :row-label-fn (fn [row] (:id row)) :width 340}
+                   {:id :name :header-label "name" :row-label-fn (fn [row] (:name row)) :width 340}
+                   {:id :id :header-label "age" :row-label-fn (fn [row] (:age row)) :width 340}])
+
+(def table-data [{:id 1 :name "Alice" :age 30}
+                 {:id 2 :name "Janice" :age 35}
+                 {:id 3 :name "Banice" :age 38}
+                 {:id 1 :name "Alice" :age 30}
+                 {:id 2 :name "Janice" :age 35}
+                 {:id 3 :name "Banice" :age 38}
+                 {:id 1 :name "Alice" :age 30}
+                 {:id 2 :name "Janice" :age 35}
+                 {:id 3 :name "Banice" :age 38}
+                 {:id 1 :name "Alice" :age 30}
+                 {:id 2 :name "Janice" :age 35}
+                 {:id 3 :name "Banice" :age 38}
+                 {:id 1 :name "Alice" :age 30}
+                 {:id 2 :name "Janice" :age 35}
+                 {:id 3 :name "Banice" :age 38}
+                 {:id 2 :name "Janice" :age 35}
+                 {:id 3 :name "Banice" :age 38}])
+
+(def tree-select-data [{:id :sydney :label "Sydney" :group [:oceania :australia :nsw]}
+                       {:id :newcastle :label "Newcastle" :group [:oceania :australia :nsw]}
+                       {:id :central-coast :label "Central Coast" :group [:oceania :australia :nsw]}
+                       {:id :wollongong :label "Wollongong" :group [:oceania :australia :nsw]}
+                       {:id :melbourne :label "Melbourne" :group [:oceania :australia :victoria]}
+                       {:id :geelong :label "Geelong" :group [:oceania :australia :victoria]}
+                       {:id :ballarat :label "Ballarat" :group [:oceania :australia :victoria]}
+                       {:id :christchurch :label "Christchurch" :group [:oceania :new-zealand :canterbury]}
+                       {:id :auckland :label "Auckland" :group [:oceania :new-zealand]}
+                       {:id :hamilton :label "Hamilton" :group [:oceania :new-zealand]}
+                       {:id :wellington :label "Wellington" :group [:oceania :new-zealand :wellington]}
+                       {:id :lower-hutt :label "Lower Hutt" :group [:oceania :new-zealand :wellington]}
+                       {:id :atlantis :label "atlantis"}])
+
+(defn container-widget [{:keys [id children]}]
+  (let [edit-mode? (re-frame/subscribe [:edit-mode?])
+        elements (for [child children]
+                   ^{:key (:id child)}
+                   (utils/render-widget child widget-views))]
+    [re-com/h-box
+     :align :center
+     :class "container-widget"
+     :padding "8px"
+     :width "100%"
+     :children (vec
+                (concat elements
+                        (when @edit-mode?
+                          [[add-widget-button {:parent-id id}]])))]))
+
+(defn dropdown-widget []
+  (let [model (reagent/atom :a)
+        choices dropdown-data]
+    [re-com/single-dropdown
+     :choices choices
+     :class "dropdown-widget"
+     :width "300px"
+     :model @model
+     :on-change #(reset! model %)]))
+
+(defn button-widget []
+  [re-com/button
+   :label "Submit"])
+
+(defn table-widget []
+  (let [columns table-colums
+        model (reagent/atom table-data)]
+    [re-com/simple-v-table
+     :class "table-widget"
+     :columns columns
+     :model model]))
+
+(def widget-views
+  {:container container-widget
+   :dropdown dropdown-widget
+   :button button-widget
+   :table table-widget})
+
+(defn widget-list []
+  (let [selected-widget (re-frame/subscribe [:selected-widget])]
+    [re-com/selection-list
+     :height "400px"
+     :width "400px"
+     :choices (map (fn [[k _]]
+                     {:id k :label (name k)}) widget-views)
+     :model @selected-widget
+     :multi-select? false
+     :on-change #(re-frame/dispatch [:select-widget %])]))
+
+(defn widget-modal []
+  (let [selected-widget (re-frame/subscribe [:selected-widget])
+        current-container-id (re-frame/subscribe [:current-container-id])]
+    [re-com/modal-panel
+     :backdrop-on-click #(re-frame/dispatch [:set-show-widget-modal false])
+     :child [re-com/v-box
+             :children [[widget-list]
+                        [re-com/button
+                         :label "Add"
+                         :on-click #(do
+                                      (re-frame/dispatch [:select-widget #{}])
+                                      (re-frame/dispatch [:set-show-widget-modal false])
+                                      (re-frame/dispatch
+                                       [:add-widget
+                                        (first @selected-widget)
+                                        (random-uuid)
+                                        @current-container-id]))]]]]))
+
+(defn add-widget-button [{:keys [parent-id]}]
+  [:<>
+   [re-com/md-circle-icon-button
+    :md-icon-name "zmdi-plus"
+    :on-click #(do
+                 (re-frame/dispatch [:set-current-container-id parent-id])
+                 (re-frame/dispatch [:set-show-widget-modal true]))]])
+
+(defn dash []
+  (let [edit-mode? (re-frame/subscribe [:edit-mode?])
+        class (str/join " " ["dash" (when @edit-mode? "edit-mode")])
+        widgets (re-frame/subscribe [:widgets])
+        elements (for [widget (:children @widgets)]
+                   ^{:key (:id widget)}
+                   (utils/render-widget widget widget-views))]
+    [re-com/v-box
+     :class class
+     :width "100%"
+     :children (vec
+                (concat
+                 elements
+                 (when @edit-mode?
+                   [[add-widget-button {:parent-id -1}]])))]))
+
+(defn mode-button []
   (let [edit-mode? (re-frame/subscribe [:edit-mode?])
         label (str "Mode: " (if @edit-mode? "Edit" "View"))]
     [re-com/button
@@ -21,176 +153,52 @@
      :style {:width "100px"}
      :on-click #(re-frame/dispatch [:toggle-edit-mode])]))
 
-(def cities [{:id :sydney    :label "Sydney" :group [:oceania :australia :nsw]}
-             {:id :newcastle    :label "Newcastle" :group [:oceania :australia :nsw]}
-             {:id :central-coast    :label "Central Coast" :group [:oceania :australia :nsw]}
-             {:id :wollongong    :label "Wollongong" :group [:oceania :australia :nsw]}
-             {:id :melbourne :label "Melbourne" :group [:oceania :australia :victoria]}
-             {:id :geelong :label "Geelong" :group [:oceania :australia :victoria]}
-             {:id :ballarat :label "Ballarat" :group [:oceania :australia :victoria]}
-             {:id :christchurch :label "Christchurch" :group [:oceania :new-zealand :canterbury]}
-             {:id :auckland :label "Auckland" :group [:oceania :new-zealand]}
-             {:id :hamilton :label "Hamilton" :group [:oceania :new-zealand]}
-             {:id :wellington :label "Wellington" :group [:oceania :new-zealand :wellington]}
-             {:id :lower-hutt :label "Lower Hutt" :group [:oceania :new-zealand :wellington]}
-             {:id :atlantis :label "atlantis"}])
-
 (defn config-modal []
   (let [selected (reagent/atom #{})]
     [re-com/modal-panel
-     :backdrop-on-click #(re-frame/dispatch [:hide-config-modal])
+     :backdrop-on-click #(re-frame/dispatch [:set-show-config-modal false])
      :child [re-com/h-box
-             :width "600px"
              :height "600px"
+             :width "600px"
              :children [[re-com/box
                          :child [re-com/tree-select
-                                 :choices cities
+                                 :choices tree-select-data
                                  :initial-expanded-groups :all
                                  :model @selected
                                  :on-change #(reset! selected %)]]
                         [re-com/box
                          :child [:span "Hello"]]]]]))
 
-(defn config-btn []
+(defn config-button []
   (let [show-config-modal? (re-frame/subscribe [:show-config-modal?])]
     [:<>
      [re-com/button
       :label "Config"
-      :on-click #(re-frame/dispatch [:show-config-modal])]
+      :on-click #(re-frame/dispatch [:set-show-config-modal true])]
      (when @show-config-modal? [config-modal])]))
 
-(defn mode-btns []
+(defn dash-controls []
   (let [edit-mode? (re-frame/subscribe [:edit-mode?])]
     [re-com/h-box
      :align :center
      :gap "10px"
-     :children [(when @edit-mode? [config-btn]) [mode-btn]]]))
+     :children [(when @edit-mode? [config-button]) [mode-button]]]))
+
+(defn title []
+  [re-com/title
+   :label "Dashboard"
+   :level :level1])
 
 (defn header []
   [re-com/h-box
    :align :center
    :justify :between
    :width "100%"
-   :children [[title] [mode-btns]]])
-
-(defn widget-list [{:keys [parent-id]}]
-  (let [selected (reagent/atom #{})]
-    (fn []
-      [re-com/selection-list
-       :multi-select? false
-       :model @selected
-       :choices [{:id :h-box :label "h-box"}
-                 {:id :dropdown :label "dropdown"}
-                 {:id :button :label "button"}
-                 {:id :table :label "table"}]
-       :on-change (fn [x]
-                    (reset! selected x)
-                    (dispatch [:add-widget (first x) (random-uuid) parent-id]))])))
-
-(defn widget-modal [{:keys [backdrop-on-click parent-id]}]
-  [re-com/modal-panel
-   :backdrop-on-click #(backdrop-on-click)
-   :child [widget-list {:parent-id parent-id}]])
-
-(defn add-btn [{:keys [parent-id]}]
-  (let [show? (reagent/atom false)]
-    (fn []
-      [:<>
-       [re-com/md-circle-icon-button
-        :md-icon-name "zmdi-plus"
-        :on-click #(reset! show? true)]
-       (when @show?
-         [widget-modal
-          {:backdrop-on-click #(reset! show? false)
-           :parent-id parent-id}])])))
-
-(defn h-box [{:keys [parent-id children]}]
-  (let [edit-mode? @(subscribe [:edit-mode?])]
-    [re-com/h-box
-     :class "h-box"
-     :width "100%"
-     :align :center
-     :padding "8px"
-     :children [(when (seq children)
-                  (for [child children]
-                    ^{:key (:id child)}
-                    (render-widget child))) (when edit-mode?
-                                              [add-btn {:parent-id parent-id}])]]))
-
-(defn dropdown []
-  (let [model (reagent/atom :a)
-        choices [{:id :a :label "Choice A"}
-                 {:id :b :label "Choice B"}
-                 {:id :c :label "Choice C"}]]
-    [re-com/single-dropdown
-     :class "dropdown"
-     :choices choices
-     :width "300px"
-     :model @model
-     :on-change #(reset! model %)]))
-
-(defn table []
-  (let [columns [{:id :id :header-label "id" :row-label-fn (fn [row] (:id row)) :width 340}
-                 {:id :name :header-label "name" :row-label-fn (fn [row] (:name row)) :width 340}
-                 {:id :id :header-label "age" :row-label-fn (fn [row] (:age row)) :width 340}]
-        model (reagent/atom [{:id 1 :name "Alice" :age 30}
-                             {:id 2 :name "Janice" :age 35}
-                             {:id 3 :name "Banice" :age 38}
-                             {:id 1 :name "Alice" :age 30}
-                             {:id 2 :name "Janice" :age 35}
-                             {:id 3 :name "Banice" :age 38}
-                             {:id 1 :name "Alice" :age 30}
-                             {:id 2 :name "Janice" :age 35}
-                             {:id 3 :name "Banice" :age 38}
-                             {:id 1 :name "Alice" :age 30}
-                             {:id 2 :name "Janice" :age 35}
-                             {:id 3 :name "Banice" :age 38}
-                             {:id 1 :name "Alice" :age 30}
-                             {:id 2 :name "Janice" :age 35}
-                             {:id 3 :name "Banice" :age 38}
-                             {:id 2 :name "Janice" :age 35}
-                             {:id 3 :name "Banice" :age 38}])]
-    [re-com/simple-v-table
-     :class "table-widget"
-     :columns columns
-     :model model]))
-
-(defn button []
-  [re-com/button
-   :label "Submit"])
-
-(def widget-views
-  {:h-box h-box
-   :dropdown dropdown
-   :button button
-   :table table})
-
-(defn render-widget [{:keys [id name children]}]
-  (let [view (get widget-views name)]
-    (if view
-      (if (= name :h-box)
-        ;; For containers, pass parent-id and render children
-        [view {:parent-id id :children children}]
-        ;; For leaf widgets
-        [view])
-      [:div "Unknown widget: " (pr-str name)])))
+   :children [[title] [dash-controls]]])
 
 (defn main []
-  (let [edit-mode? @(subscribe [:edit-mode?])
-        class (str/join " " ["main" (when edit-mode? "edit-mode")])
-        widgets @(subscribe [:widgets])
-        items (concat
-               (for [w widgets]
-                 ^{:key (:id w)}
-                 (render-widget w)))]
+  (let [show-widget-modal? (re-frame/subscribe [:show-widget-modal?])]
     [re-com/v-box
-     :class class
-     :width "100%"
-     :children [items
-                (when edit-mode?
-                  [add-btn {:parent-id nil}])]]))
-
-(defn app []
-  [re-com/v-box
-   :class "dash"
-   :children [[header] [main]]])
+     :class "main"
+     :children [[header] [dash] (when @show-widget-modal?
+                                  [widget-modal])]]))
