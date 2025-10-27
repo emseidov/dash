@@ -35,25 +35,19 @@
                  {:id 2 :name "Janice" :age 35}
                  {:id 3 :name "Banice" :age 38}])
 
-(def tree-select-data [{:id :sydney :label "Sydney" :group [:oceania :australia :nsw]}
-                       {:id :newcastle :label "Newcastle" :group [:oceania :australia :nsw]}
-                       {:id :central-coast :label "Central Coast" :group [:oceania :australia :nsw]}
-                       {:id :wollongong :label "Wollongong" :group [:oceania :australia :nsw]}
-                       {:id :melbourne :label "Melbourne" :group [:oceania :australia :victoria]}
-                       {:id :geelong :label "Geelong" :group [:oceania :australia :victoria]}
-                       {:id :ballarat :label "Ballarat" :group [:oceania :australia :victoria]}
-                       {:id :christchurch :label "Christchurch" :group [:oceania :new-zealand :canterbury]}
-                       {:id :auckland :label "Auckland" :group [:oceania :new-zealand]}
-                       {:id :hamilton :label "Hamilton" :group [:oceania :new-zealand]}
-                       {:id :wellington :label "Wellington" :group [:oceania :new-zealand :wellington]}
-                       {:id :lower-hutt :label "Lower Hutt" :group [:oceania :new-zealand :wellington]}
-                       {:id :atlantis :label "atlantis"}])
+(def tree-select-data [{:id 1 :label "events" :group [:root :container-1 :dropdown-1]}
+                       {:id 2 :label "events" :group [:root :container-1 :dropdown-2]}
+                       {:id 3 :label "events" :group [:root :container-1 :dropdown-3]}
+                       {:id 4 :label "events" :group [:root :container-1 :button-1]}
+                       {:id 5 :label "events" :group [:root :container-2 :table-1]}])
 
-(defn container-widget [{:keys [id children]}]
+(def my-atom (atom 0))
+
+(defn container-widget [{:keys [id children register-event register-handler]}]
   (let [edit-mode? (re-frame/subscribe [:edit-mode?])
         elements (for [child children]
                    ^{:key (:id child)}
-                   (utils/render-widget child widget-views))]
+                   (utils/render-widget child widget-views register-event register-handler))]
     [re-com/h-box
      :align :center
      :class "container-widget"
@@ -65,18 +59,39 @@
                           [[add-widget-button {:parent-id id}]])))]))
 
 (defn dropdown-widget []
-  (let [model (reagent/atom :a)
-        choices dropdown-data]
-    [re-com/single-dropdown
-     :choices choices
-     :class "dropdown-widget"
-     :width "300px"
-     :model @model
-     :on-change #(reset! model %)]))
+  (let [log (fn []
+              (println "Hello from dropdown-widget register-method!"))]
+    (reagent/create-class
+     {:component-did-mount
+      (fn [this]
+        (let [{:keys [register-handler]} (reagent/props this)]
+          (println "Hello from dropdown-widget component-did-mount!")
+          (register-handler log)))
+      :render
+      (fn []
+        (let [model (reagent/atom :a)
+              choices dropdown-data]
+          [re-com/single-dropdown
+           :choices choices
+           :class "dropdown-widget"
+           :width "300px"
+           :model @model
+           :on-change #(reset! model %)]))})))
 
 (defn button-widget []
-  [re-com/button
-   :label "Submit"])
+  (let [handle-click (reagent/atom (fn []
+                                     (println "Hello from button-widget register-event!")))]
+    (reagent/create-class
+     {:component-did-mount
+      (fn [this]
+        (println "Hello from button-widget component-did-mount!")
+        (let [{:keys [register-event]} (reagent/props this)]
+          (reset! handle-click (register-event @handle-click))))
+      :render
+      (fn []
+        [re-com/button
+         :label "Submit"
+         :on-click #(@handle-click)])})))
 
 (defn table-widget []
   (let [columns table-colums
@@ -118,8 +133,9 @@
                                       (re-frame/dispatch
                                        [:add-widget
                                         (first @selected-widget)
-                                        (random-uuid)
-                                        @current-container-id]))]]]]))
+                                        @my-atom
+                                        @current-container-id])
+                                      (swap! my-atom inc))]]]]))
 
 (defn add-widget-button [{:keys [parent-id]}]
   [:<>
@@ -133,17 +149,31 @@
   (let [edit-mode? (re-frame/subscribe [:edit-mode?])
         class (str/join " " ["dash" (when @edit-mode? "edit-mode")])
         widgets (re-frame/subscribe [:widgets])
+        events-and-handlers (reagent/atom {:handler nil
+                                           :event nil})
+        register-handler (fn [handler]
+                           (swap! events-and-handlers #(assoc % :handler handler)))
+        register-event (fn [event]
+                         (swap! events-and-handlers #(assoc % :event event))
+                         (fn []
+                           (event)
+                           ((:handler @events-and-handlers))))
         elements (for [widget (:children @widgets)]
                    ^{:key (:id widget)}
-                   (utils/render-widget widget widget-views))]
-    [re-com/v-box
-     :class class
-     :width "100%"
-     :children (vec
-                (concat
-                 elements
-                 (when @edit-mode?
-                   [[add-widget-button {:parent-id -1}]])))]))
+                   (utils/render-widget widget widget-views register-event register-handler))]
+    (reagent/create-class
+     {:component-did-mount
+      (fn []
+        ())
+      :render
+      (fn [] [re-com/v-box
+              :class class
+              :width "100%"
+              :children (vec
+                         (concat
+                          elements
+                          (when @edit-mode?
+                            [[add-widget-button {:parent-id -1}]])))])})))
 
 (defn mode-button []
   (let [edit-mode? (re-frame/subscribe [:edit-mode?])
@@ -173,7 +203,7 @@
   (let [show-config-modal? (re-frame/subscribe [:show-config-modal?])]
     [:<>
      [re-com/button
-      :label "Config"
+      :label "Events & Handlers"
       :on-click #(re-frame/dispatch [:set-show-config-modal true])]
      (when @show-config-modal? [config-modal])]))
 

@@ -42,3 +42,8 @@
  :set-current-container-id
  (fn [db [_ id]]
    (assoc db :current-container-id id)))
+
+(re-frame/reg-event-db
+ :register-event
+ (fn [db [_ event]]
+   (assoc db :config {0 {:events {}}})))
