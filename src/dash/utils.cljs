@@ -14,4 +14,4 @@
   (let [view (get widget-views name)]
     (if (= name :container)
       [view {:id id :children children :register-event register-event :register-handler register-handler}]
-      [view {:register-event register-event :register-handler register-handler}])))
+      [view {:register-event register-event :register-handler register-handler :widget-id id}])))

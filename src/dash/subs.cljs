@@ -18,9 +18,9 @@
    (:widgets db)))
 
 (re-frame/reg-sub
- :show-config-modal?
+ :show-actions-modal?
  (fn [db]
-   (:show-config-modal? db)))
+   (:show-actions-modal? db)))
 
 (re-frame/reg-sub
  :selected-widget
@@ -31,3 +31,14 @@
  :current-container-id
  (fn [db]
    (:current-container-id db)))
+
+(re-frame/reg-sub
+ :actions
+ (fn [db]
+   (:actions db)))
+
+(re-frame/reg-sub
+ :events-and-handlers
+ (fn [db]
+   (:events-and-handlers db)))
+

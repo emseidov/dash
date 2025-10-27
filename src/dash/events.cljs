@@ -29,9 +29,9 @@
      (update db :widgets utils/add-widget widget))))
 
 (re-frame/reg-event-db
- :set-show-config-modal
+ :set-show-actions-modal
  (fn [db [_ value]]
-   (assoc db :show-config-modal? value)))
+   (assoc db :show-actions-modal? value)))
 
 (re-frame/reg-event-db
  :select-widget
@@ -44,6 +44,22 @@
    (assoc db :current-container-id id)))
 
 (re-frame/reg-event-db
- :register-event
- (fn [db [_ event]]
-   (assoc db :config {0 {:events {}}})))
+ :reg-event
+ (fn [db [_ {:keys [widget-id key] :as event}]]
+   (update-in db [:events-and-handlers widget-id :events]
+              (fn [x]
+                (println x)
+                (assoc (or x {}) key event)))))
+
+(re-frame/reg-event-db
+ :reg-handler
+ (fn [db [_ {:keys [widget-id key] :as handler}]]
+   (update-in db [:events-and-handlers widget-id :handlers]
+              (fn [x]
+                (println x)
+                (assoc (or x {}) key handler)))))
+
+(re-frame/reg-event-db
+ :add-action
+ (fn [db [_ action]]
+   (assoc db :actions action)))
