@@ -1,29 +1,20 @@
 (ns dash.db)
 
 (def default-db
-  {:actions {}
+  {:actions []
+   :api-data {}
+   :context-menu nil
+   :data-args {}
    :events-and-handlers {}
-   ;; {:button {:name
-   ;;                                :id
-   ;;                                :events {:on-click {}}
-   ;;                                :handlers nil}}
    :current-container-id -1
    :edit-mode? false
    :selected-widget #{}
+   :settings {}
    :show-actions-modal? false
+   :show-context-menu? false
+   :show-settings-modal? false
    :show-widget-modal? false
    :widgets {:name :root
-             :id -1
-             :parent-id -1
+             :id 1
+             :parent-id nil
              :children []}})
-             ;; :children [{:id 0
-             ;;             :parent-id -1
-             ;;             :name :container
-             ;;             :children [{:id 1
-             ;;                         :parent-id 0
-             ;;                         :name :dropdown
-             ;;                         :children []}
-             ;;                        {:id 2
-             ;;                         :parent-id 0
-             ;;                         :name :button
-             ;;                         :children []}]}]}})

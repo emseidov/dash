@@ -2,6 +2,7 @@
   (:require
    [reagent.dom :as rdom]
    [re-frame.core :as re-frame]
+   [day8.re-frame.http-fx]
    [dash.events :as events]
    [dash.views :as views]
    [dash.config :as config]))

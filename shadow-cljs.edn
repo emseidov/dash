@@ -7,6 +7,8 @@
   [re-frame "1.4.2"]
   [re-com "2.23.0"]
   [com.rpl/specter "1.1.4"]
+  [day8.re-frame/http-fx "0.2.4"]
+  [cljs-ajax "0.8.4"]
 
   [binaryage/devtools "1.0.6"]
   [re-frisk "1.6.0"]]
