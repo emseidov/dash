@@ -103,4 +103,4 @@
  :set-data-args
  (fn [db [_ id args]]
    (println "set-data-args" id args)
-   (update-in db [:data-args id] args)))
+   (update-in db [:data-args id] #(conj % args))))

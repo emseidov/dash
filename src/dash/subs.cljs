@@ -66,3 +66,8 @@
  :settings
  (fn [db]
    (:settings db)))
+
+(re-frame/reg-sub
+ :data-args
+ (fn [db]
+   (:data-args db)))

@@ -110,7 +110,11 @@
                                      (println "Hello from button-widget register-event!")))
         set-data-args (fn [args]
                         (println "button-widget set-data-args" args)
-                        (re-frame/dispatch [:set-data-args widget-id args]))]
+                        (re-frame/dispatch [:set-data-args widget-id args]))
+        log (fn [args]
+              (let [data-args @(re-frame/subscribe [:data-args])
+                    widget-data-args (get data-args widget-id)]
+                (println "button-widget log" data-args widget-data-args)))]
     (reagent/create-class
      {:component-did-mount
       (fn [this]
@@ -121,6 +125,9 @@
                                                 :widget-id widget-id}))
           (register-handler {:key "set-data-args"
                              :fn set-data-args
+                             :widget-id widget-id})
+          (register-handler {:key "log"
+                             :fn log
                              :widget-id widget-id})))
 
       :render
@@ -369,7 +376,8 @@
                                  (prn "x" (get (first x) widget-id))
                                  ((:fn (get (first x) widget-id)) args)
                                  (let [[_ [_ bv] [_ cv]] (seq (first x))]
-                                   ((:fn bv) args)))))
+                                   ((:fn bv) args)
+                                   ((:fn cv) args)))))
             register-handler (fn [handler]
                                (re-frame/dispatch [:reg-handler handler]))
                          ;;   (event)
