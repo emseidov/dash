@@ -51,7 +51,8 @@
                           [[add-widget-button {:parent-id id}]])))]))
 
 (defn dropdown-widget [{:keys [widget-id]}]
-  (let [set-data-args (fn [args]
+  (let [model (reagent/atom nil)
+        set-data-args (fn [args]
                         (println "set-data-args dropdown-widget")
                         (re-frame/dispatch [:set-data-args args widget-id]))
         fetch (fn []
@@ -59,15 +60,22 @@
                       uri (get @settings widget-id)]
                       ;; args (re-frame/subscribe [:data-args widget-id])]
                   (println "fetch dropdown-widget" uri widget-id)
-                  (re-frame/dispatch [:fetch-api-data uri widget-id])))]
+                  (re-frame/dispatch [:fetch-api-data uri widget-id])))
+        handle-change (reagent/atom (fn [choice]
+                                      (println "dropdown-widget handle-change" choice)
+                                      (reset! model choice)
+                                      (println "Hello from button-widget register-event!")))]
     (reagent/create-class
      {:component-did-mount
       (fn [this]
-        (let [{:keys [register-handler widget-id]} (reagent/props this)]
+        (let [{:keys [register-event register-handler widget-id]} (reagent/props this)]
           (println "Hello from dropdown-widget component-did-mount!")
-          (register-handler {:key "set-data-args"
-                             :fn set-data-args
-                             :widget-id widget-id})
+          (reset! handle-change (register-event {:key "on-change"
+                                                 :fn @handle-change
+                                                 :widget-id widget-id}))
+          (register-handler {:key "set-data-args"}
+                            :fn set-data-args
+                            :widget-id widget-id)
           (register-handler {:key "fetch"
                              :fn fetch
                              :widget-id widget-id})))
@@ -87,7 +95,7 @@
       :reagent-render
       (fn [{:keys [widget-id settings]}]
         (let [data (or @(re-frame/subscribe [:api-data widget-id]) [])
-              model (reagent/atom nil)
+
               choices (utils/to-dropdown-data data)]
           (println "dropdown-widget render" choices)
           [re-com/single-dropdown
@@ -95,19 +103,26 @@
            :class "dropdown-widget"
            :width "300px"
            :model model
-           :on-change #(reset! model %)]))})))
+           :on-change #(@handle-change %)]))})))
 
-(defn button-widget []
+(defn button-widget [{:keys [widget-id]}]
   (let [handle-click (reagent/atom (fn []
-                                     (println "Hello from button-widget register-event!")))]
+                                     (println "Hello from button-widget register-event!")))
+        set-data-args (fn [args]
+                        (println "button-widget set-data-args" args)
+                        (re-frame/dispatch [:set-data-args widget-id args]))]
     (reagent/create-class
      {:component-did-mount
       (fn [this]
         (println "Hello from button-widget component-did-mount!")
-        (let [{:keys [register-event widget-id]} (reagent/props this)]
-          (reset! handle-click (register-event {:key "handle-click"
+        (let [{:keys [register-event register-handler widget-id]} (reagent/props this)]
+          (reset! handle-click (register-event {:key "on-click"
                                                 :fn @handle-click
-                                                :widget-id widget-id}))))
+                                                :widget-id widget-id}))
+          (register-handler {:key "set-data-args"
+                             :fn set-data-args
+                             :widget-id widget-id})))
+
       :render
       (fn []
         [re-com/button
@@ -131,13 +146,13 @@
     (reagent/create-class
      {:component-did-mount
       (fn [this]
-        ((let [{:keys [register-handler widget-id]} (reagent/props this)]
-           (register-handler {:key "log"
-                              :fn set-data-args
-                              :widget-id widget-id})
-           (register-handler {:key "fetch"
-                              :fn fetch
-                              :widget-id widget-id}))))
+        (let [{:keys [register-handler widget-id]} (reagent/props this)]
+          (register-handler {:key "log"
+                             :fn set-data-args
+                             :widget-id widget-id})
+          (register-handler {:key "fetch"
+                             :fn fetch
+                             :widget-id widget-id})))
 
       :render
       (fn []
@@ -343,7 +358,8 @@
             settings (re-frame/subscribe [:settings])
             register-event (fn [{:keys [widget-id] :as event}]
                              (re-frame/dispatch [:reg-event event])
-                             (fn []
+                             (fn [args]
+                               (println "dash args" args)
                                (println "dash" @actions widget-id event)
                                (let [x
                                      (filter
@@ -351,10 +367,9 @@
                                         (= (first (keys m)) widget-id))
                                       @actions)]
                                  (prn "x" (get (first x) widget-id))
-                                 ((:fn (get (first x) widget-id)))
+                                 ((:fn (get (first x) widget-id)) args)
                                  (let [[_ [_ bv] [_ cv]] (seq (first x))]
-                                   ((:fn bv))
-                                   ((:fn cv))))))
+                                   ((:fn bv) args)))))
             register-handler (fn [handler]
                                (re-frame/dispatch [:reg-handler handler]))
                          ;;   (event)

@@ -101,5 +101,6 @@
 
 (re-frame/reg-event-db
  :set-data-args
- (fn [db [_ args id]]
-   (update-in db [:data-args id] (fnil concat []) args)))
+ (fn [db [_ id args]]
+   (println "set-data-args" id args)
+   (update-in db [:data-args id] args)))
