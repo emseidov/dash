@@ -67,7 +67,7 @@
 
 (re-frame/reg-event-fx
  :fetch-api-data
- (fn [_ [_ uri key args]]
+ (fn [_ [_ uri key]]
    {:http-xhrio {:method          :get
                  :uri             uri
                  :response-format (ajax/json-response-format {:keywords? true})
@@ -75,7 +75,7 @@
 
 (re-frame/reg-event-db
  :fetch-api-data-success
- (fn [db [_ data key]]
+ (fn [db [_ key data]]
    (update db :api-data #(assoc % key data))))
 
 (re-frame/reg-event-db

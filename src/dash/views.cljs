@@ -54,22 +54,18 @@
   (let [set-data-args (fn [args]
                         (println "set-data-args dropdown-widget")
                         (re-frame/dispatch [:set-data-args args widget-id]))
-
         fetch (fn []
-
                 (let [settings (re-frame/subscribe [:settings])
-                      uri (get @settings widget-id)
-                      args (re-frame/subscribe [:data-args widget-id])]
-
-                  (println "fetch dropdown-widget" uri widget-id args)
-                  (re-frame/dispatch [:fetch-api-data uri args])))]
-
+                      uri (get @settings widget-id)]
+                      ;; args (re-frame/subscribe [:data-args widget-id])]
+                  (println "fetch dropdown-widget" uri widget-id)
+                  (re-frame/dispatch [:fetch-api-data uri widget-id])))]
     (reagent/create-class
      {:component-did-mount
       (fn [this]
         (let [{:keys [register-handler widget-id]} (reagent/props this)]
           (println "Hello from dropdown-widget component-did-mount!")
-          (register-handler {:key "log"
+          (register-handler {:key "set-data-args"
                              :fn set-data-args
                              :widget-id widget-id})
           (register-handler {:key "fetch"
@@ -81,17 +77,19 @@
       ;;     (register-handler {:key "log" :fn log :widget-id widget-id})))
       :component-did-update
       (fn [this prev-props]
-        (let [settings (:settings (reagent/props this))
-              prev-settings (:settings prev-props)]
+        (let [{:keys [settings widget-id]} (reagent/props this)
+              prev-settings (:settings prev-props)
+              widget-settings (get settings widget-id)
+              prev-widget-settings (get prev-settings widget-id)]
           (println "dropdown-widget component-did-update" settings prev-settings)
-          (when (not= settings prev-settings)
+          (when (not= widget-settings prev-widget-settings)
             (fetch))))
       :reagent-render
       (fn [{:keys [widget-id settings]}]
         (let [data (re-frame/subscribe [:api-data widget-id])
               model (reagent/atom nil)
               choices (or @data [])]
-          (println "dropdown-widget render" settings)
+          (println "dropdown-widget render")
           [re-com/single-dropdown
            :choices choices
            :class "dropdown-widget"
@@ -335,8 +333,7 @@
     ;;         prev-actions (:actions prev-props)]
     ;;     (when (not= actions prev-actions)
     ;;       ))
-    (fn []
-      (re-frame/dispatch [:fetch-api-data :latest "https://api.frankfurter.dev/v1/latest"]))
+    (fn [])
     :reagent-render
     (fn []
       (let [edit-mode? (re-frame/subscribe [:edit-mode?])
