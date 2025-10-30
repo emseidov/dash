@@ -38,3 +38,7 @@
                    (let [value (get args @counter "")]
                      (swap! counter inc)
                      value)))))
+
+(defn to-dropdown-data [data]
+  (map (fn [[k v]]
+         {:id k :label (str (name k) " - " v)}) data))

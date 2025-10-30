@@ -86,15 +86,15 @@
             (fetch))))
       :reagent-render
       (fn [{:keys [widget-id settings]}]
-        (let [data (re-frame/subscribe [:api-data widget-id])
+        (let [data (or @(re-frame/subscribe [:api-data widget-id]) [])
               model (reagent/atom nil)
-              choices (or @data [])]
-          (println "dropdown-widget render")
+              choices (utils/to-dropdown-data data)]
+          (println "dropdown-widget render" choices)
           [re-com/single-dropdown
            :choices choices
            :class "dropdown-widget"
            :width "300px"
-           :model @model
+           :model model
            :on-change #(reset! model %)]))})))
 
 (defn button-widget []
