@@ -1,4 +1,4 @@
-{:lint-as {}
+{:lint-as {reagent.core/with-let clojure.core/let}
  :linters {:unresolved-symbol {:exclude [goog.DEBUG]}
            :unused-namespace {:exclude [cljs.repl]}
            :unused-referred-var {:exclude {cljs.repl [Error->map

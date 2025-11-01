@@ -1,73 +1,73 @@
 (ns dash.subs
   (:require
-   [re-frame.core :as re-frame]))
+   [re-frame.core :as rf]))
 
-(re-frame/reg-sub
+(rf/reg-sub
  :edit-mode?
  (fn [db]
    (:edit-mode? db)))
 
-(re-frame/reg-sub
+(rf/reg-sub
  :show-widget-modal?
  (fn [db]
    (:show-widget-modal? db)))
-;; fdd
-(re-frame/reg-sub
+
+(rf/reg-sub
  :widgets
  (fn [db]
    (:widgets db)))
-(println)
-(re-frame/reg-sub
- :show-actions-modal?
- (fn [db]
-   (:show-actions-modal? db)))
 
-(re-frame/reg-sub
- :selected-widget
+(rf/reg-sub
+ :show-action-modal?
  (fn [db]
-   (:selected-widget db)))
+   (:show-action-modal? db)))
 
-(re-frame/reg-sub
- :current-container-id
+(rf/reg-sub
+ :current-parent-id
  (fn [db]
-   (:current-container-id db)))
+   (:current-parent-id db)))
 
-(re-frame/reg-sub
+(rf/reg-sub
  :actions
  (fn [db]
    (:actions db)))
 
-(re-frame/reg-sub
+(rf/reg-sub
  :events-and-handlers
  (fn [db]
    (:events-and-handlers db)))
 
-(re-frame/reg-sub
+(rf/reg-sub
  :api-data
  (fn [db [_ id]]
    (get-in db [:api-data id])))
 
-(re-frame/reg-sub
+(rf/reg-sub
  :context-menu
  (fn [db]
    (:context-menu db)))
 
-(re-frame/reg-sub
+(rf/reg-sub
  :show-context-menu?
  (fn [db]
    (:show-context-menu? db)))
 
-(re-frame/reg-sub
+(rf/reg-sub
  :show-settings-modal?
  (fn [db]
    (:show-settings-modal? db)))
 
-(re-frame/reg-sub
+(rf/reg-sub
  :settings
  (fn [db]
    (:settings db)))
 
-(re-frame/reg-sub
+(rf/reg-sub
+ :api-settings
+ (fn [db [_ id]]
+   (get-in db [:settings :api id])))
+
+(rf/reg-sub
  :data-args
  (fn [db]
    (:data-args db)))

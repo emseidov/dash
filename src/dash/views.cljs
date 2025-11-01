@@ -1,448 +1,459 @@
 (ns dash.views
   (:require
-   [re-frame.core :as re-frame]
-   [re-com.core :as re-com]
-   [reagent.core :as reagent]
-   [clojure.string :as str]
-   [dash.utils :as utils]
-   [dash.subs]))
+   [re-frame.core :as rf]
+   [re-com.core :as rc]
+   [reagent.core :as r]
+   [dash.utils :as u]))
 
-(declare add-widget-button widget-views)
+;; Crafted with love (and plenty of parentheses) by an aspiring Clojurist ♥️
 
-(def dropdown-data [{:id :a :label "Choice A"}
-                    {:id :b :label "Choice B"}
-                    {:id :c :label "Choice C"}])
+(declare open-widget-modal-button widget-views)
 
-(def table-colums [{:id :id :header-label "id" :row-label-fn (fn [row] (:id row)) :width 340}
-                   {:id :name :header-label "name" :row-label-fn (fn [row] (:name row)) :width 340}
-                   {:id :id :header-label "age" :row-label-fn (fn [row] (:age row)) :width 340}])
-
-(def table-data [{:id 1 :name "Alice" :age 30}
-                 {:id 2 :name "Janice" :age 35}
-                 {:id 3 :name "Banice" :age 38}
-                 {:id 1 :name "Alice" :age 30}
-                 {:id 2 :name "Janice" :age 35}
-                 {:id 3 :name "Banice" :age 38}
-                 {:id 1 :name "Alice" :age 30}
-                 {:id 2 :name "Janice" :age 35}
-                 {:id 3 :name "Banice" :age 38}
-                 {:id 1 :name "Alice" :age 30}
-                 {:id 2 :name "Janice" :age 35}
-                 {:id 3 :name "Banice" :age 38}
-                 {:id 1 :name "Alice" :age 30}
-                 {:id 2 :name "Janice" :age 35}
-                 {:id 3 :name "Banice" :age 38}
-                 {:id 2 :name "Janice" :age 35}
-                 {:id 3 :name "Banice" :age 38}])
-
-(defn container-widget [{:keys [id children register-event register-handler settings]}]
-  (let [edit-mode? (re-frame/subscribe [:edit-mode?])
-        elements (for [child children]
-                   ^{:key (:id child)}
-                   (utils/render-widget child widget-views register-event register-handler settings))]
-    [re-com/h-box
-     :align :center
+(defn container-widget [{:keys [id children] :as props}]
+  (let [edit-mode? (rf/subscribe [:edit-mode?])
+        widgets (mapv (fn [widget]
+                        ^{:key (:id widget)}
+                        (u/render-widget widget props widget-views)) children)
+        content (into widgets
+                      (when @edit-mode?
+                        [[open-widget-modal-button {:parent-id id}]]))]
+    [rc/h-box
      :class "container-widget"
-     :padding "8px"
-     :width "100%"
-     :children (vec
-                (concat elements
-                        (when @edit-mode?
-                          [[add-widget-button {:parent-id id}]])))]))
+     :children content]))
 
-(defn dropdown-widget [{:keys [widget-id]}]
-  (let [model (reagent/atom nil)
+(defn dropdown-widget [{:keys [widget-id settings]}]
+  (let [model (r/atom nil)
         set-data-args (fn [args]
-                        (println "set-data-args dropdown-widget")
-                        (re-frame/dispatch [:set-data-args args widget-id]))
+                        (rf/dispatch [:set-data-args args widget-id]))
         fetch (fn []
-                (let [settings (re-frame/subscribe [:settings])
-                      uri (get @settings widget-id)]
-                      ;; args (re-frame/subscribe [:data-args widget-id])]
-                  (println "fetch dropdown-widget" uri widget-id)
-                  (re-frame/dispatch [:fetch-api-data uri widget-id])))
-        handle-change (reagent/atom (fn [choice]
-                                      (println "dropdown-widget handle-change" choice)
-                                      (reset! model choice)
-                                      (println "Hello from button-widget register-event!")))]
-    (reagent/create-class
+                (let [;; settings (rf/subscribe [:settings])
+                      uri (get-in settings [:api widget-id])]
+                  (prn "settings................................" settings uri)
+                  (rf/dispatch [:fetch-api-data uri widget-id])))
+        handle-change (r/atom (fn [choice]
+                                (reset! model choice)))]
+    (r/create-class
      {:component-did-mount
-      (fn [this]
-        (let [{:keys [register-event register-handler widget-id]} (reagent/props this)]
-          (println "Hello from dropdown-widget component-did-mount!")
+      (fn [this prev-props]
+        (let [{:keys [register-event register-handler widget-id actions]} (r/props this)]
           (reset! handle-change (register-event {:key "on-change"
                                                  :fn @handle-change
                                                  :widget-id widget-id}))
-          (register-handler {:key "set-data-args"}
-                            :fn set-data-args
-                            :widget-id widget-id)
+          (register-handler {:key "set-data-args"
+                             :fn set-data-args
+                             :widget-id widget-id})
           (register-handler {:key "fetch"
                              :fn fetch
                              :widget-id widget-id})))
-      ;; :component-did-update
-      ;; (fn [this prev-props]
-      ;;   (let [{:keys [register-handler widget-id]} (reagent/props this)]
-      ;;     (register-handler {:key "log" :fn log :widget-id widget-id})))
+
       :component-did-update
       (fn [this prev-props]
-        (let [{:keys [settings widget-id]} (reagent/props this)
-              prev-settings (:settings prev-props)
-              widget-settings (get settings widget-id)
-              prev-widget-settings (get prev-settings widget-id)]
-          (println "dropdown-widget component-did-update" settings prev-settings)
-          (when (not= widget-settings prev-widget-settings)
-            (fetch))))
-      :reagent-render
-      (fn [{:keys [widget-id settings]}]
-        (let [data (or @(re-frame/subscribe [:api-data widget-id]) [])
+        (let [{:keys [register-event register-handler widget-id actions settings]} (r/props this)
+              fetcher (fn []
+                        (let [;; settings (rf/subscribe [:settings])
+                              uri (get-in settings [:api widget-id])]
+                          (prn "settings AYYYYYYYYYYYYY" settings uri)
+                          (rf/dispatch [:fetch-api-data uri widget-id])))]
 
-              choices (utils/to-dropdown-data data)]
-          (println "dropdown-widget render" choices)
-          [re-com/single-dropdown
-           :choices choices
+          (when (or
+                 (not= actions (-> prev-props second :actions))
+                 (not= settings (-> prev-props second :settings)))
+            (prn "UPDATED LI VEEE ALOOO")
+            (reset! handle-change (register-event {:key "on-change"
+                                                   :fn @handle-change
+                                                   :widget-id widget-id}))
+            (register-handler {:key "set-data-args"
+                               :fn set-data-args
+                               :widget-id widget-id})
+            (register-handler {:key "fetch"
+                               :fn fetcher
+                               :widget-id widget-id}))))
+
+      ;; (fn [this prev-props]
+      ;;   (let [{:keys [settings widget-id]} (r/props this)
+      ;;         prev-settings (:settings prev-props)
+      ;;         widget-settings (get settings widget-id)
+      ;;         prev-widget-settings (get prev-settings widget-id)]
+      ;;     (println "dropdown-widget component-did-update" settings prev-settings)
+      ;;     (when (not= widget-settings prev-widget-settings)
+      ;;       (fetch))))
+      :reagent-render
+      (fn [{:keys [widget-id settings actions]}]
+        (let [data (or @(rf/subscribe [:api-data widget-id]) [])
+              choices (u/to-dropdown-data data)]
+          (prn settings actions)
+          [rc/single-dropdown
            :class "dropdown-widget"
-           :width "300px"
+           :choices choices
            :model model
            :on-change #(@handle-change %)]))})))
 
 (defn button-widget [{:keys [widget-id]}]
-  (let [handle-click (reagent/atom (fn []
-                                     (println "Hello from button-widget register-event!")))
+  (let [handle-click (r/atom (fn []
+                               (println "Hello from button-widget register-event!")))
         set-data-args (fn [args]
-                        (println "button-widget set-data-args" args)
-                        (re-frame/dispatch [:set-data-args widget-id args]))
+                        (rf/dispatch [:set-data-args widget-id args]))
         log (fn [args]
-              (let [data-args @(re-frame/subscribe [:data-args])
-                    widget-data-args (get data-args widget-id)]
-                (println "button-widget log" data-args widget-data-args)))]
-    (reagent/create-class
+              ;; (let [data-args @(rf/subscribe [:data-args])
+              ;;       widget-data-args (get data-args widget-id)]
+              (prn "ALO BALONITE"))]
+    (r/create-class
      {:component-did-mount
-      (fn [this]
-        (println "Hello from button-widget component-did-mount!")
-        (let [{:keys [register-event register-handler widget-id]} (reagent/props this)]
-          (reset! handle-click (register-event {:key "on-click"
-                                                :fn @handle-click
-                                                :widget-id widget-id}))
+      (fn [this prev-props]
+        (let [{:keys [register-event register-handler widget-id actions]} (r/props this)]
+
           (register-handler {:key "set-data-args"
                              :fn set-data-args
                              :widget-id widget-id})
           (register-handler {:key "log"
                              :fn log
-                             :widget-id widget-id})))
+                             :widget-id widget-id})
+          (reset! handle-click (register-event {:key "on-click"
+                                                :fn @handle-click
+                                                :widget-id widget-id}))))
 
-      :render
+      :component-did-update
+      (fn [this prev-props]
+        (prn "PREV_PROPS" prev-props)
+        (let [{:keys [register-event register-handler widget-id actions settings]} (r/props this)]
+          (when (or
+                 (not= actions (-> prev-props second :actions))
+                 (not= settings (-> prev-props second :settings)))
+
+            (register-handler {:key "set-data-args"
+                               :fn set-data-args
+                               :widget-id widget-id})
+            (register-handler {:key "log"
+                               :fn log
+                               :widget-id widget-id})
+            (reset! handle-click (register-event {:key "on-click"
+                                                  :fn @handle-click
+                                                  :widget-id widget-id})))))
+
+      :reagent-render
       (fn []
-        [re-com/button
+        [rc/button
+         :class "button-widget btn-default"
          :label "Submit"
          :on-click #(@handle-click)])})))
-
-(defn table-widget [{:keys [widget-id]}]
-  (let [columns table-colums
-        model (reagent/atom table-data)
-        set-data-args (fn [args]
-                        (re-frame/dispatch [:set-data-args args widget-id]))
-
-        fetch (fn []
-                (let [settings (re-frame/subscribe [:settings])
-                      uri (get @settings widget-id)
-                      args (re-frame/subscribe [:data-args widget-id])]
-
-                  (println "fetch table-widget" uri args)
-
-                  (re-frame/dispatch [:fetch-api-data uri args])))]
-    (reagent/create-class
-     {:component-did-mount
-      (fn [this]
-        (let [{:keys [register-handler widget-id]} (reagent/props this)]
-          (register-handler {:key "log"
-                             :fn set-data-args
-                             :widget-id widget-id})
-          (register-handler {:key "fetch"
-                             :fn fetch
-                             :widget-id widget-id})))
-
-      :render
-      (fn []
-        [re-com/simple-v-table
-         :class "table-widget"
-         :columns columns
-         :model model])})))
-
-(defn tree-select-widget []
-  (let [model (reagent/atom #{})]
-    (reagent/create-class
-     {:render
-      (fn []
-        [re-com/tree-select-dropdown
-         :width "200px"
-         :choices [{:id 1 :label "1" :group [:all]}
-                   {:id 2 :label "2" :group [:all]}]
-         :model @model
-         :initial-expanded-groups :all
-         :on-change #()])})))
-
-(defn date-picker-widget []
-  (reagent/create-class
-   {:render
-    (fn []
-      [re-com/datepicker-dropdown
-       :class "date-picker-widget"
-       :on-change #()])}))
 
 (def widget-views
   {:container container-widget
    :dropdown dropdown-widget
-   :button button-widget
-   :table table-widget
-   :tree-select tree-select-widget
-   :date-picker date-picker-widget})
+   :button button-widget})
+
+(defn save-settings-button [{:keys [on-click]}]
+  [rc/button
+   :class "save-settings-btn btn-default"
+   :label "Save"
+   :on-click #(on-click)])
+
+(defn api-settings-field [{:keys [model on-change]}]
+  [:div
+   {:class "api-settings-field"}
+   [:span "API"] [rc/input-text
+                  :change-on-blur? false
+                  :model model
+                  :on-change #(on-change %)]])
 
 (defn settings-modal []
-  (let [{:keys [widget-id]} @(re-frame/subscribe [:context-menu])
-        prev-api (or (get @(re-frame/subscribe [:settings]) widget-id) "")
-        api (reagent/atom prev-api)]
-    [re-com/modal-panel
+  (r/with-let [widget-id (-> @(rf/subscribe [:context-menu])
+                             :widget-id)
+               draft-api (-> @(rf/subscribe [:api-settings widget-id])
+                             r/atom)
+               handle-close-settings-modal #(rf/dispatch [:set-show-settings-modal false])
+               handle-change-draft-api #(reset! draft-api %)
+               handle-save-settings (fn []
+                                      (rf/dispatch [:set-api-settings widget-id @draft-api])
+                                      (rf/dispatch [:set-show-settings-modal false]))]
+
+    [rc/modal-panel
      :class "settings-modal"
-     :backdrop-on-click #(re-frame/dispatch [:set-show-settings-modal false])
+     :backdrop-on-click handle-close-settings-modal
      :child [:div
-             [:div
-              [:span "API"]
-              [re-com/input-text
-               :change-on-blur? false
-               :model api
-               :on-change #(reset! api %)]]
-             [re-com/button
-              :label "Save"
-              :on-click #(do
-                           (re-frame/dispatch [:set-settings widget-id @api])
-                           (re-frame/dispatch [:set-show-settings-modal false]))]]]))
+             [api-settings-field
+              {:model draft-api
+               :on-change handle-change-draft-api}]
+             [save-settings-button
+              {:on-click handle-save-settings}]]]))
 
 (defn context-menu []
-  (reagent/create-class
-   {:component-did-mount
-    (fn [this]
-      (let [handler (fn [] (re-frame/dispatch [:set-show-context-menu false]))]
-        (aset this "clickHandler" handler)
-        (.addEventListener js/document "click" handler)))
+  (r/with-let [handle-close-context-menu
+               (fn [_]
+                 (rf/dispatch [:set-show-context-menu false]))]
 
-    :component-will-unmount
-    (fn [this]
-      (.removeEventListener js/document "click" (aget this "clickHandler")))
-    :render
-    (fn []
-      (let [{:keys [x y]} @(re-frame/subscribe [:context-menu])]
-        [:div {:class "context-menu ti-eba-mamata"
-               :style {:top y
-                       :left x}}
-         [:div {:on-click #(re-frame/dispatch [:set-show-settings-modal true])} "Settings"]
-         [:div {:on-click #()} "Remove"]]))}))
+    (.addEventListener js/document "click" handle-close-context-menu)
 
-(defn add-action-button [{:keys [actions on-click]}]
-  [re-com/button
+    (let [{:keys [x y]} @(rf/subscribe [:context-menu])]
+      [:div.context-menu
+       {:style {:top y :left x}}
+       [:div {:on-click #(rf/dispatch [:set-show-settings-modal true])} "Settings"]
+       [:div {:on-click #()} "Remove"]])
+
+    (finally
+      (.removeEventListener js/document "click" handle-close-context-menu)
+      (println "Context menu unmounted"))))
+
+(defn save-actions-button [{:keys [on-click]}]
+  [rc/button
+   :class "save-actions-btn btn-default"
+   :label "Save"
+   :on-click #(on-click)])
+
+(defn events-or-handlers [{:keys [show action action-idx events-and-handlers on-select-event on-select-handlers]}]
+  (prn "events-or-handlers" action)
+  (let [x 0]
+    [rc/v-box
+     :children (cond
+                 (= show :events) (mapv (fn [[wid {:keys [events]}]]
+                                          [:div
+                                           (str wid)
+                                           (let [model (as-> (:event action) %
+                                                         (:name %)
+                                                         (hash-map :name % :wid wid)
+                                                         (hash-set %))]
+                                             [rc/selection-list
+                                              :model model
+                                              :multi-select? false
+                                              :choices (mapv (fn [[name]]
+                                                               {:label name :id {:name name :wid wid}}) events)
+                                              :on-change (fn [event]
+                                                           (on-select-event (first event) action-idx))])]) events-and-handlers)
+                 (= show :handlers) (mapv (fn [[wid {:keys [handlers]}]]
+                                            (let [model (->> (:handlers action)
+                                                             (some #(when (= wid (first %)) (second %)))
+                                                             set)]
+                                              (prn "MODEEEL" model)
+                                              [:div
+                                               (str wid)
+                                               [rc/selection-list
+                                                :model model
+                                                :choices (mapv (fn [[name]]
+                                                                 {:label name :id name}) handlers)
+                                                :on-change #(on-select-handlers (vec %) wid action-idx)]])) events-and-handlers)
+                 :else [[:span ""]])]))
+
+(defn actions-item [{:keys [action idx on-click-events on-click-handlers]}]
+  [:div
+   {:class "actions-item"}
+   "Action " (inc idx)
+   [:div
+    {:on-click #(on-click-events idx)}
+    "Wait Event"]
+   [:div
+    {:on-click #(on-click-handlers idx)}
+    "Handler"]])
+
+(defn add-action-button [{:keys [on-click]}]
+  [rc/button
+   :class "add-action-btn btn-default"
    :label "Add Action"
    :on-click #(on-click)])
 
 (defn action-connector []
-  (let [show (reagent/atom nil)
-        draft-actions (reagent/atom {})
-        draft-atom (reagent/atom [])]
-    (fn []
-      (let [actions (re-frame/subscribe [:actions])
-            events-and-handlers (re-frame/subscribe [:events-and-handlers])]
-        [re-com/h-box
-         :height "600px"
-         :width "600px"
-         :justify :between
-         :children [[re-com/v-box
-                     :style {:flex 1}
-                     :children (into
-                                [[add-action-button {:actions @draft-atom
-                                                     :on-click #(swap! draft-atom conj (str "Action - " (inc (count @draft-atom))))}]
-                                 [re-com/button
-                                  :label "Submit"
-                                  :on-click #(re-frame/dispatch [:add-action @draft-actions])]]
-                                (mapv (fn [action]
-                                        ^{:key action}
-                                        [:div
-                                         [:div action]
-                                         [:div {:style {:margin-left 20}
-                                                :on-click #(reset! show "events")} "Wait event"]
-                                         [:div {:style {:margin-left 40}
-                                                :on-click #(reset! show "handlers")} "Handler"]]) @draft-atom))]
-                    [re-com/v-box
-                     :style {:flex 1}
-                     :children (cond
-                                 (= @show "events") (mapv (fn [[id {:keys [events]}]]
-                                                            [:div
-                                                             (str "id - " id)
-                                                             [:div ""
-                                                              (if (empty? (mapv (fn [[name]]
-                                                                                  [:span name]) events))
-                                                                "empty"
-                                                                (first (mapv (fn [[name value]]
-                                                                               [:span {:on-click #(swap! draft-actions merge {id value})} name]) events)))]]) @events-and-handlers)
-                                 (= @show "handlers") (mapv (fn [[id {:keys [handlers]}]]
-                                                              [:div
-                                                               (str "id - " id)
-                                                               [:div ""
-                                                                (if (empty? (mapv (fn [[namee]]
-                                                                                    (prn "handlers" handlers)
-                                                                                    (prn "events and handlers" @events-and-handlers)
-                                                                                    [:span namee]) handlers))
-                                                                  "empty"
-                                                                  (let [[[an av] [bn bv]] (seq handlers)]
-                                                                    [:<>
-                                                                     [:div {:on-click #(swap! draft-actions merge {an av})} an]
-                                                                     [:div {:on-click #(swap! draft-actions merge {bn bv})} bn]]))]])
-                                                                  ;; (mapv (fn [[namee value]]
-                                                                  ;;         (prn "x" namee)
-                                                                  ;;         ^{:key namee}
-                                                                  ;;         [:span "a"])
-                                                                  ;;   ;; (fn [[name value]]
-                                                                  ;;   ;;       [:span {:on-click #(swap! draft-actions merge {id value})} name]) 
-                                                                  ;;       handlers)
-                                                                  ;;
-                                                            @events-and-handlers)
+  (r/with-let [events-and-handlers @(rf/subscribe [:events-and-handlers])
+               draft-actions (-> @(rf/subscribe [:actions])
+                                 r/atom)
+               curr-action-idx (r/atom nil)
+               show (r/atom nil)
+               handle-add-action #(swap! draft-actions conj {:event {}
+                                                             :handlers {}})
+               handle-click-events (fn [idx]
+                                     (reset! curr-action-idx idx)
+                                     (reset! show :events))
+               handle-click-handlers (fn [idx]
+                                       (reset! curr-action-idx idx)
+                                       (reset! show :handlers))
+               handle-select-event (fn [event idx]
+                                     (prn "..........." event idx)
+                                     (swap! draft-actions assoc-in [idx :event] event))
+               handle-select-handlers (fn [handlers wid idx x]
+                                        (prn "handler bre" handlers)
+                                        (swap! draft-actions assoc-in [idx :handlers wid] handlers))
+               events (map (fn [[widget-id {:keys [events]}]]
+                             {widget-id events}) events-and-handlers)
+               handlers (map (fn [[widget-id {:keys [handlers]}]]
+                               {widget-id handlers}) events-and-handlers)]
+    (prn "draft-actions" @draft-actions)
+    (let [action-items (map-indexed (fn [idx action]
+                                      [actions-item
+                                       {:action action
+                                        :idx idx
+                                        :on-click-events handle-click-events
+                                        :on-click-handlers handle-click-handlers}]) @draft-actions)]
 
-                                 :else [[:span ""]])]]]))))
+      [rc/h-box
+       :class "action-connector"
+       :justify :between
+       :children [[rc/v-box
+                   :children (into [[add-action-button
+                                     {:on-click handle-add-action}]]
+                                   action-items)]
+                  [rc/v-box
+                   :children [[events-or-handlers
+                               {:show @show
+                                :action-idx @curr-action-idx
+                                :action (get @draft-actions @curr-action-idx)
+                                :events-and-handlers events-and-handlers
+                                :on-select-event handle-select-event
+                                :on-select-handlers handle-select-handlers}]
+                              [rc/h-box
+                               :children [[save-actions-button
+                                           {:on-click #(rf/dispatch [:save-actions @draft-actions])}]]]]]]])))
 
-(defn actions-modal []
-  [re-com/modal-panel
-   :backdrop-on-click #(re-frame/dispatch [:set-show-actions-modal false])
+(defn action-modal []
+  [rc/modal-panel
+   :class "action-modal"
+   :backdrop-on-click #(rf/dispatch [:set-show-action-modal false])
    :child [action-connector]])
 
-(defn widget-list []
-  (let [selected-widget (re-frame/subscribe [:selected-widget])]
-    [re-com/selection-list
-     :height "400px"
-     :width "400px"
-     :choices (map (fn [[key _]]
-                     {:id key :label (name key)}) widget-views)
-     :model @selected-widget
-     :multi-select? false
-     :on-change #(re-frame/dispatch [:select-widget %])]))
+(defn add-widget-button [{:keys [on-click]}]
+  [rc/button
+   :class "add-widget-btn btn-default"
+   :label "Add"
+   :on-click #(on-click)])
+
+(defn widget-list [{:keys [model choices on-change]}]
+  [rc/selection-list
+   :class "widget-list"
+   :choices choices
+   :model model
+   :multi-select? false
+   :on-change #(on-change %)])
 
 (defn widget-modal []
-  (let [selected-widget (re-frame/subscribe [:selected-widget])
-        current-container-id (re-frame/subscribe [:current-container-id])]
-    [re-com/modal-panel
-     :backdrop-on-click #(re-frame/dispatch [:set-show-widget-modal false])
-     :child [re-com/v-box
-             :children [[widget-list]
-                        [re-com/button
-                         :label "Add"
-                         :on-click #(do
-                                      (re-frame/dispatch [:select-widget #{}])
-                                      (re-frame/dispatch [:set-show-widget-modal false])
-                                      (re-frame/dispatch
-                                       [:add-widget
-                                        (first @selected-widget)
-                                        @current-container-id]))]]]]))
+  (let [current-parent-id @(rf/subscribe [:current-parent-id])
+        selected-widget (r/atom #{})
+        widget-choices (map (fn [[k _]]
+                              {:id k
+                               :label (name k)}) widget-views)
+        handle-select-widget #(reset! selected-widget %)
+        handle-add-widget (fn []
+                            (rf/dispatch [:set-show-widget-modal false])
+                            (rf/dispatch [:add-widget (first @selected-widget) current-parent-id]))]
+    [rc/modal-panel
+     :class "widget-modal"
+     :backdrop-on-click #(rf/dispatch [:set-show-widget-modal false])
+     :child [rc/v-box
+             :children [[widget-list
+                         {:model selected-widget
+                          :choices widget-choices
+                          :on-change handle-select-widget}]
+                        [add-widget-button
+                         {:on-click handle-add-widget}]]]]))
 
-(defn add-widget-button [{:keys [parent-id]}]
-  [:<>
-   [re-com/md-circle-icon-button
-    :md-icon-name "zmdi-plus"
-    :on-click #(do
-                 (re-frame/dispatch [:set-current-container-id parent-id])
-                 (re-frame/dispatch [:set-show-widget-modal true]))]])
+(defn open-widget-modal-button [{:keys [parent-id]}]
+  [rc/md-circle-icon-button
+   :class "open-widget-modal-btn"
+   :md-icon-name "zmdi-plus"
+   :on-click (fn []
+               (rf/dispatch [:set-current-parent-id parent-id])
+               (rf/dispatch [:set-show-widget-modal true]))])
 
-(defn dash []
-  (reagent/create-class
-   {:component-did-mount
-    ;; (fn [this prev-props]
-    ;;   (let [{:keys actions} (reagent/props this)
-    ;;         prev-actions (:actions prev-props)]
-    ;;     (when (not= actions prev-actions)
-    ;;       ))
-    (fn [])
-    :reagent-render
-    (fn []
-      (let [edit-mode? (re-frame/subscribe [:edit-mode?])
-            widgets (re-frame/subscribe [:widgets])
-            actions (re-frame/subscribe [:actions])
-            api-data (re-frame/subscribe [:api-data])
-            settings (re-frame/subscribe [:settings])
-            register-event (fn [{:keys [widget-id] :as event}]
-                             (re-frame/dispatch [:reg-event event])
-                             (fn [args]
-                               (println "dash args" args)
-                               (println "dash" @actions widget-id event)
-                               (let [x
-                                     (filter
-                                      (fn [m]
-                                        (= (first (keys m)) widget-id))
-                                      @actions)]
-                                 (prn "x" (get (first x) widget-id))
-                                 ((:fn (get (first x) widget-id)) args)
-                                 (let [[_ [_ bv] [_ cv]] (seq (first x))]
-                                   ((:fn bv) args)
-                                   ((:fn cv) args)))))
-            register-handler (fn [handler]
-                               (re-frame/dispatch [:reg-handler handler]))
-                         ;;   (event)
-                         ;;   ((:handler @events-and-handlers))))
-            class (str/join " " ["dash" (when @edit-mode? "edit-mode")])
-            elements (for [widget (:children @widgets)]
-                       ^{:key (:id widget)}
-                       (utils/render-widget widget widget-views register-event register-handler @settings))]
-        [re-com/v-box
-         :class class
-         :width "100%"
-         :children (vec
-                    (concat
-                     elements
-                     (when @edit-mode?
-                       [[add-widget-button {:parent-id 1}]])))]))}))
+(defn dash [{:keys [actions]}]
+  (let [edit-mode? @(rf/subscribe [:edit-mode?])
+        widgets @(rf/subscribe [:widgets])
+        ;; actions @(rf/subscribe [:actions])
+        settings @(rf/subscribe [:settings])
+        events-and-handlers @(rf/subscribe [:events-and-handlers])
+        register-handler (fn [handler]
+                           (rf/dispatch [:reg-handler handler]))
 
-(defn mode-button []
-  (let [edit-mode? (re-frame/subscribe [:edit-mode?])
-        label (str "Mode: " (if @edit-mode? "Edit" "View"))]
-    [re-com/button
+        register-event (fn [{:keys [widget-id key] :as event}]
+
+                         (rf/dispatch [:reg-event event])
+                         (fn [args]
+                           (prn "OOOOOOOOOOOO")
+                           (let [target (get-in events-and-handlers [widget-id :events key])
+                                 action (some #(when (= widget-id (get-in % [:event :wid])) %) actions)]
+                             (prn "......... aloooo events" events-and-handlers)
+                             (prn "......... alooo actions" actions)
+
+                             ((:fn target))
+                             (doseq [[_ {:keys [handlers]}] (->> events-and-handlers
+                                                                 (filter #(contains? (:handlers action) (first %))))]
+
+                               (doseq [[_ handler] handlers]
+                                 (prn "HANDLERRRR" handler)
+
+                                 ((:fn handler)))))
+
+;; (let [x
+                           ;;       (filter
+                           ;;        (fn [m]
+                           ;;          (= (first (keys m)) widget-id))
+                           ;;        actions)]
+                           ;;   (prn "x" (get (first x) widget-id))
+                           ;;   ((:fn (get (first x) widget-id)) args)
+                           ;;   (let [[_ [_ bv] [_ cv]] (seq (first x))]
+                           ;;     ((:fn bv) args)
+                           ;;     ((:fn cv) args))
+                           ))
+        class (str "dash " (when edit-mode? "edit-mode"))
+        props {:register-event register-event
+               :register-handler register-handler
+               :actions actions
+               :settings settings}
+        widget-elements (mapv (fn [widget]
+                                ^{:key (:id widget)}
+                                (u/render-widget widget props widget-views)) (:children widgets))
+        content (into widget-elements
+                      (when edit-mode?
+                        [[open-widget-modal-button {:parent-id 1}]]))]
+    (prn actions)
+    [rc/v-box
+     :class class
+     :children content]))
+
+(defn toggle-mode-button []
+  (let [edit-mode? @(rf/subscribe [:edit-mode?])
+        label (str "Mode: " (if edit-mode? "Edit" "View"))]
+    [rc/button
+     :class "toggle-mode-btn btn-default"
      :label label
-     :style {:width "100px"}
-     :on-click #(re-frame/dispatch [:toggle-edit-mode])]))
+     :on-click #(rf/dispatch [:toggle-edit-mode])]))
 
-(defn actions-button []
-  [:<>
-   [re-com/button
-    :label "Actions"
-    :on-click #(re-frame/dispatch [:set-show-actions-modal true])]])
+(defn open-action-modal-button []
+  [rc/button
+   :class "open-action-modal-btn btn-default"
+   :label "Actions"
+   :on-click #(rf/dispatch [:set-show-action-modal true])])
 
 (defn dash-controls []
-  (let [edit-mode? (re-frame/subscribe [:edit-mode?])]
-    [re-com/h-box
-     :align :center
-     :gap "10px"
-     :children [(when @edit-mode? [actions-button]) [mode-button]]]))
+  (let [edit-mode? @(rf/subscribe [:edit-mode?])]
+    [rc/h-box
+     :class "dash-controls"
+     :children [(when edit-mode? [open-action-modal-button])
+                [toggle-mode-button]]]))
 
 (defn title []
-  [re-com/title
+  [rc/title
+   :class "title"
    :label "Dashboard"
    :level :level1])
 
 (defn header []
-  [re-com/h-box
-   :align :center
-   :justify :between
-   :width "100%"
-   :children [[title] [dash-controls]]])
+  [rc/h-box
+   :class "header"
+   :children [[title]
+              [dash-controls]]])
 
 (defn main []
-  (let [show-widget-modal? (re-frame/subscribe [:show-widget-modal?])
-        show-actions-modal? (re-frame/subscribe [:show-actions-modal?])
-        show-context-menu? (re-frame/subscribe [:show-context-menu?])
-        show-settings-modal? (re-frame/subscribe [:show-settings-modal?])
-        actions (re-frame/subscribe [:actions])]
-    [re-com/v-box
+  (let [show-widget-modal? @(rf/subscribe [:show-widget-modal?])
+        show-action-modal? @(rf/subscribe [:show-action-modal?])
+        show-context-menu? @(rf/subscribe [:show-context-menu?])
+        show-settings-modal? @(rf/subscribe [:show-settings-modal?])
+        actions @(rf/subscribe [:actions])]
+    [rc/v-box
      :class "main"
      :children [[header]
-                [dash {:actions actions}]
-                (when @show-widget-modal?
+                [dash
+                 {:actions actions}]
+                (when show-widget-modal?
                   [widget-modal])
-                (when @show-actions-modal?
-                  [actions-modal])
-                (when @show-context-menu?
+                (when show-action-modal?
+                  [action-modal])
+                (when show-context-menu?
                   [context-menu])
-                (when @show-settings-modal?
+                (when show-settings-modal?
                   [settings-modal])]]))

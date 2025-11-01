@@ -1,50 +1,45 @@
 (ns dash.events
   (:require
-   [re-frame.core :as re-frame]
+   [re-frame.core :as rf]
    [ajax.core :as ajax]
    [dash.db :as db]
-   [dash.utils :as utils]))
+   [dash.utils :as u]))
 
-(re-frame/reg-event-db
+(rf/reg-event-db
  ::initialize-db
  (fn [_ _]
    db/default-db))
 
-(re-frame/reg-event-db
+(rf/reg-event-db
  :toggle-edit-mode
  (fn [db _]
    (update db :edit-mode? not)))
 
-(re-frame/reg-event-db
+(rf/reg-event-db
  :set-show-widget-modal
  (fn [db [_ value]]
    (assoc db :show-widget-modal? value)))
 
-(re-frame/reg-event-db
+(rf/reg-event-db
  :add-widget
  (fn [db [_ name parent-id]]
    (let [widget {:id (random-uuid)
                  :parent-id parent-id
                  :name name
                  :children []}]
-     (update db :widgets utils/add-widget widget))))
+     (update db :widgets u/add-widget widget))))
 
-(re-frame/reg-event-db
- :set-show-actions-modal
+(rf/reg-event-db
+ :set-show-action-modal
  (fn [db [_ value]]
-   (assoc db :show-actions-modal? value)))
+   (assoc db :show-action-modal? value)))
 
-(re-frame/reg-event-db
- :select-widget
- (fn [db [_ selected-widget]]
-   (assoc db :selected-widget selected-widget)))
-
-(re-frame/reg-event-db
- :set-current-container-id
+(rf/reg-event-db
+ :set-current-parent-id
  (fn [db [_ id]]
-   (assoc db :current-container-id id)))
+   (assoc db :current-parent-id id)))
 
-(re-frame/reg-event-db
+(rf/reg-event-db
  :reg-event
  (fn [db [_ {:keys [widget-id key] :as event}]]
    (update-in db [:events-and-handlers widget-id :events]
@@ -52,7 +47,7 @@
                 (println x)
                 (assoc (or x {}) key event)))))
 
-(re-frame/reg-event-db
+(rf/reg-event-db
  :reg-handler
  (fn [db [_ {:keys [widget-id key] :as handler}]]
    (update-in db [:events-and-handlers widget-id :handlers]
@@ -60,12 +55,12 @@
                 (println x)
                 (assoc (or x {}) key handler)))))
 
-(re-frame/reg-event-db
- :add-action
- (fn [db [_ action]]
-   (update db :actions #(conj % action))))
+(rf/reg-event-db
+ :save-actions
+ (fn [db [_ actions]]
+   (assoc db :actions actions)))
 
-(re-frame/reg-event-fx
+(rf/reg-event-fx
  :fetch-api-data
  (fn [_ [_ uri key]]
    {:http-xhrio {:method          :get
@@ -73,34 +68,38 @@
                  :response-format (ajax/json-response-format {:keywords? true})
                  :on-success      [:fetch-api-data-success key]}}))
 
-(re-frame/reg-event-db
+(rf/reg-event-db
  :fetch-api-data-success
  (fn [db [_ key data]]
    (update db :api-data #(assoc % key data))))
 
-(re-frame/reg-event-db
+(rf/reg-event-db
  :set-context-menu
  (fn [db [_ value]]
    (assoc db :context-menu value)))
 
-(re-frame/reg-event-db
+(rf/reg-event-db
  :set-show-context-menu
  (fn [db [_ value]]
    (assoc db :show-context-menu? value)))
 
-(re-frame/reg-event-db
+(rf/reg-event-db
  :set-show-settings-modal
  (fn [db [_ value]]
    (assoc db :show-settings-modal? value)))
 
-(re-frame/reg-event-db
+(rf/reg-event-db
  :set-settings
  (fn [db [_ key value]]
    (println key value)
    (update db :settings #(assoc % key value))))
 
-(re-frame/reg-event-db
+(rf/reg-event-db
+ :set-api-settings
+ (fn [db [_ id value]]
+   (assoc-in db [:settings :api id] value)))
+
+(rf/reg-event-db
  :set-data-args
  (fn [db [_ id args]]
-   (println "set-data-args" id args)
    (update-in db [:data-args id] #(conj % args))))

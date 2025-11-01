@@ -15,9 +15,9 @@ body,
   /* Spacings */
   --space-xs: 4px;
   --space-sm: 8px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
+  --space-md: 10px;
+  --space-lg: 16px;
+  --space-xl: 24px;
 
   /* Radius */
   --radius-xs: 2px;
@@ -49,8 +49,19 @@ body,
 
 .main {
   height: 100%;
-  padding: var(--space-md);
+  padding: var(--space-xl) !important;
   width: 100%;
+
+  .header {
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100%;
+  }
+
+  .dash-controls {
+    align-items: center !important;
+    gap: var(--space-md) !important;
+  }
 
   .edit-btn {
     width: 100px;
@@ -70,14 +81,17 @@ body,
   }
 
   .container-widget {
+    align-items: center !important;
     background-color: var(--white);
     border: 1px solid var(--light-gray);
     border-radius: 4px;
     gap: var(--space-sm);
+    padding: var(--space-sm);
+  }
 
-    .dropdown-widget {
-      align-self: auto;
-    }
+  .dropdown-widget {
+    align-self: auto;
+    width: calc(var(--size-xl) + 100px) !important;
   }
 
   .context-menu {
@@ -100,6 +114,17 @@ body,
         background-color: var(--light-gray-2);
       }
     }
+  }
+
+  .widget-list {
+    height: var(--size-2xl);
+    width: var(--size-2xl);
+  }
+
+  .action-connector {
+    height: var(--size-2xl);
+    justify-content: space-between;
+    width: var(--size-2xl);
   }
 
   .settings-modal {

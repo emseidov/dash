@@ -1,35 +1,30 @@
 (ns dash.utils
   (:require
-   [re-frame.core :as re-frame]
-   [com.rpl.specter :as specter]
+   [re-frame.core :as rf]
+   [com.rpl.specter :as s]
    [clojure.string :as str]))
 
 (defn add-widget [widgets {:keys [parent-id] :as widget}]
   (if (= parent-id -1)
     (update widgets :children conj widget)
-    (specter/transform
-     (specter/walker #(= (:id %) parent-id))
+    (s/transform
+     (s/walker #(= (:id %) parent-id))
      #(update % :children conj widget)
      widgets)))
 
-(defn render-widget [{:keys [id name children]} widget-views register-event register-handler settings]
-  (let [view (get widget-views name)]
+(defn render-widget [widget props widget-views]
+  (let [{:keys [id name children]} widget
+        view (name widget-views)
+        handle-context-menu #(do
+                               (.preventDefault %)
+                               (rf/dispatch [:set-context-menu {:x (.-clientX %)
+                                                                :y (.-clientY %)
+                                                                :widget-id id}])
+                               (rf/dispatch [:set-show-context-menu true]))]
     (if (= name :container)
-      [view {:id id
-             :children children
-             :register-event register-event
-             :register-handler register-handler
-             :settings settings}]
-      [:div {:on-context-menu (fn [event]
-                                (.preventDefault event)
-                                (re-frame/dispatch [:set-context-menu {:x (.-clientX event)
-                                                                       :y (.-clientY event)
-                                                                       :widget-id id}])
-                                (re-frame/dispatch [:set-show-context-menu true]))}
-       [view {:register-event register-event
-              :register-handler register-handler
-              :widget-id id
-              :settings settings}]])))
+      [view (assoc props :children children :id id)]
+      [:div {:on-context-menu #(handle-context-menu %)}
+       [view (assoc props :widget-id id)]])))
 
 (defn fill-args [uri args]
   (let [counter (atom 0)]

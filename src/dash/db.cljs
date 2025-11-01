@@ -4,13 +4,12 @@
   {:actions []
    :api-data {}
    :context-menu nil
+   :current-parent-id -1
    :data-args {}
    :events-and-handlers {}
-   :current-container-id -1
    :edit-mode? false
-   :selected-widget #{}
-   :settings {}
-   :show-actions-modal? false
+   :settings {:api {}}
+   :show-action-modal? false
    :show-context-menu? false
    :show-settings-modal? false
    :show-widget-modal? false
