@@ -13,9 +13,9 @@
    (:show-widget-modal? db)))
 
 (rf/reg-sub
- :widgets
+ :widget-tree
  (fn [db]
-   (:widgets db)))
+   (:widget-tree db)))
 
 (rf/reg-sub
  :show-action-modal?

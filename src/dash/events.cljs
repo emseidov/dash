@@ -22,12 +22,12 @@
 
 (rf/reg-event-db
  :add-widget
- (fn [db [_ name parent-id]]
-   (let [widget {:id (random-uuid)
+ (fn [db [_ widget-name parent-id]]
+   (let [widget {:id (str (name widget-name) " (" (random-uuid) ")")
                  :parent-id parent-id
-                 :name name
+                 :name widget-name
                  :children []}]
-     (update db :widgets u/add-widget widget))))
+     (update db :widget-tree u/add-widget widget))))
 
 (rf/reg-event-db
  :set-show-action-modal
@@ -43,17 +43,13 @@
  :reg-event
  (fn [db [_ {:keys [widget-id key] :as event}]]
    (update-in db [:events-and-handlers widget-id :events]
-              (fn [x]
-                (println x)
-                (assoc (or x {}) key event)))))
+              (fnil assoc {}) key event)))
 
 (rf/reg-event-db
  :reg-handler
  (fn [db [_ {:keys [widget-id key] :as handler}]]
    (update-in db [:events-and-handlers widget-id :handlers]
-              (fn [x]
-                (println x)
-                (assoc (or x {}) key handler)))))
+              (fnil assoc {}) key handler)))
 
 (rf/reg-event-db
  :save-actions
@@ -63,15 +59,21 @@
 (rf/reg-event-fx
  :fetch-api-data
  (fn [_ [_ uri key]]
-   {:http-xhrio {:method          :get
-                 :uri             uri
+   {:http-xhrio {:method :get
+                 :uri uri
                  :response-format (ajax/json-response-format {:keywords? true})
-                 :on-success      [:fetch-api-data-success key]}}))
+                 :on-success [:fetch-api-data-success key]
+                 :on-error [:fetch-api-data-error]}}))
 
 (rf/reg-event-db
  :fetch-api-data-success
  (fn [db [_ key data]]
-   (update db :api-data #(assoc % key data))))
+   (assoc-in db [:api-data key] data)))
+
+(rf/reg-event-db
+ :fetch-api-data-error
+ (fn [_ [_ error]]
+   (println "error: " error)))
 
 (rf/reg-event-db
  :set-context-menu
@@ -91,8 +93,7 @@
 (rf/reg-event-db
  :set-settings
  (fn [db [_ key value]]
-   (println key value)
-   (update db :settings #(assoc % key value))))
+   (assoc-in db [:settings key] value)))
 
 (rf/reg-event-db
  :set-api-settings
@@ -102,4 +103,4 @@
 (rf/reg-event-db
  :set-data-args
  (fn [db [_ id args]]
-   (update-in db [:data-args id] #(conj % args))))
+   (update-in db [:data-args id] (fnil conj []) args)))

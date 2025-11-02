@@ -5,16 +5,14 @@
    [clojure.string :as str]))
 
 (defn add-widget [widgets {:keys [parent-id] :as widget}]
-  (if (= parent-id -1)
-    (update widgets :children conj widget)
-    (s/transform
-     (s/walker #(= (:id %) parent-id))
-     #(update % :children conj widget)
-     widgets)))
+  (s/transform
+   (s/walker #(= (:id %) parent-id))
+   #(update % :children conj widget)
+   widgets))
 
-(defn render-widget [widget props widget-views]
+(defn render-widget [widget props widget-map]
   (let [{:keys [id name children]} widget
-        view (name widget-views)
+        view (name widget-map)
         handle-context-menu #(do
                                (.preventDefault %)
                                (rf/dispatch [:set-context-menu {:x (.-clientX %)
@@ -22,9 +20,9 @@
                                                                 :widget-id id}])
                                (rf/dispatch [:set-show-context-menu true]))]
     (if (= name :container)
-      [view (assoc props :children children :id id)]
+      [view (assoc props :id id :children children)]
       [:div {:on-context-menu #(handle-context-menu %)}
-       [view (assoc props :widget-id id)]])))
+       [view (assoc props :id id)]])))
 
 (defn fill-args [uri args]
   (let [counter (atom 0)]
@@ -37,3 +35,7 @@
 (defn to-dropdown-data [data]
   (map (fn [[k v]]
          {:id k :label (str (name k) " - " v)}) data))
+
+(defn spread-colls
+  [& colls]
+  (vec (apply concat colls)))

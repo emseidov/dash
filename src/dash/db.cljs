@@ -13,7 +13,7 @@
    :show-context-menu? false
    :show-settings-modal? false
    :show-widget-modal? false
-   :widgets {:name :root
-             :id 1
-             :parent-id nil
-             :children []}})
+   :widget-tree {:name :root
+                 :id 1
+                 :parent-id nil
+                 :children []}})
