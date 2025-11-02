@@ -9,6 +9,29 @@
 
 (declare show-widget-modal-button widget-map)
 
+(defn datepicker-widget [{:keys [id]}]
+  (r/with-let [model (r/atom nil)
+               handle-change-date (r/atom (fn [date]
+                                            (reset! model date)))
+               log (fn []
+                     (println "Hello from datepicker-widget reg-handler" @model))]
+    (r/create-class
+     {:component-did-mount
+      (fn [this]
+        (let [{:keys [id reg-event reg-handler]} (r/props this)]
+          (reset! handle-change-date (reg-event {:key "on-change-date"
+                                                 :fn @handle-change-date
+                                                 :widget-id id}))
+          (reg-handler {:key "log"
+                        :fn log
+                        :widget-id id})))
+      :reagent-render
+      (fn []
+        [rc/datepicker-dropdown
+         :class "datepicker-widget"
+         :model model
+         :on-change #(@handle-change-date %)])})))
+
 (defn button-widget [{:keys [id]}]
   (r/with-let [handle-click (r/atom (fn []
                                       (println "Hello from button-widget reg-event!")))
@@ -43,7 +66,7 @@
                handle-change (r/atom (fn [choice]
                                        (reset! model choice)))
                set-data-args (fn [args]
-                               (rf/dispatch [:set-data-args args id]))
+                               (rf/dispatch [:set-data-args id args]))
                fetch (fn []
                        (let [settings (rf/subscribe [:settings])
                              uri (get-in @settings [:api id])]
@@ -86,7 +109,8 @@
 (def widget-map
   {:container container-widget
    :dropdown dropdown-widget
-   :button button-widget})
+   :button button-widget
+   :datepicker datepicker-widget})
 
 (defn save-settings-button [{:keys [on-click]}]
   (let [handle-click #(on-click)]
@@ -329,7 +353,7 @@
                         (when active-event
                           ((:fn active-event) args))
                         (doseq [handler active-handlers]
-                          ((:fn handler))))))
+                          ((:fn handler) args)))))
         reg-handler #(rf/dispatch [:reg-handler %])
         props {:reg-event reg-event
                :reg-handler reg-handler}
