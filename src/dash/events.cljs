@@ -58,20 +58,23 @@
 
 (rf/reg-event-fx
  :fetch-api-data
- (fn [_ [_ uri key]]
-   {:http-xhrio {:method :get
-                 :uri uri
-                 :response-format (ajax/json-response-format {:keywords? true})
-                 :on-success [:fetch-api-data-success key]
-                 :on-error [:fetch-api-data-error]}}))
+ (fn [_ [_ uri args widget-id]]
+   (prn "ARGSSS" (vec (vals args)))
+   (let [formatted-uri (u/fill-args uri (vec (vals args)))]
+     (prn ":fech-api-data" formatted-uri uri args)
+     {:http-xhrio {:method :get
+                   :uri formatted-uri
+                   :response-format (ajax/json-response-format {:keywords? true})
+                   :on-success [:fetch-api-data-success widget-id]
+                   :on-failure [:fetch-api-data-failure]}})))
 
 (rf/reg-event-db
  :fetch-api-data-success
- (fn [db [_ key data]]
-   (assoc-in db [:api-data key] data)))
+ (fn [db [_ widget-id data]]
+   (assoc-in db [:api-data widget-id] data)))
 
 (rf/reg-event-db
- :fetch-api-data-error
+ :fetch-api-data-failure
  (fn [_ [_ error]]
    (println "error: " error)))
 
@@ -102,5 +105,5 @@
 
 (rf/reg-event-db
  :set-data-args
- (fn [db [_ id args]]
-   (update-in db [:data-args id] (fnil conj []) args)))
+ (fn [db [_ id setter-id args]]
+   (assoc-in db [:data-args id setter-id] args)))

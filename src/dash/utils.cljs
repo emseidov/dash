@@ -2,6 +2,7 @@
   (:require
    [re-frame.core :as rf]
    [com.rpl.specter :as s]
+   [cljs-time.format :as f]
    [clojure.string :as str]))
 
 (defn add-widget [widgets {:keys [parent-id] :as widget}]
@@ -34,8 +35,48 @@
 
 (defn to-dropdown-data [data]
   (map (fn [[k v]]
-         {:id k :label (str (name k) " - " v)}) data))
+         {:id (name k) :label (str (name k) " - " v)}) data))
+
+(def data {"base" "EUR"
+           "start_date" "1999-12-30"
+           "end_date" "2000-12-29"
+           :rates {"1999-12-30" {"AUD" 1.5422
+                                 "CAD" 1.4608
+                                 "CHF" 1.6051
+                                 "CYP" 0.57667},
+                   "2000-01-03" {"AUD" 1.5346
+                                 "CAD" 1.4577
+                                 "CHF" 1.6043
+                                 "CYP" 0.5767}}})
+
+;; {:id :date :label "date" :row-label-fn (fn [row] (:date))}
+;; {id: :AUD :label AUD :row-label-fn (fn [row] (:AUD))}
+;;
+;; {:date 2000-01-03 AUD: 1.5346 }
+;; (conj (map (fn [[k]]
+;;          {:id k :label k :row-label-fn (fn [row] (k row))})
+;;        (second (first (:rates data)))) {:id :date})
+;;
+;; (map (fn [[k v]]
+;;        v) (:rates data))
+(conj '(1 2 3) 4)
+(defn to-table-columns [data]
+  (vec (conj  (map (fn [[k]]
+                     {:id k :header-label (name k) :row-label-fn (fn [row] (k row)) :width 65})
+                   (second (first (:rates data))))
+              {:id :date :header-label "DATE" :row-label-fn (fn [row] (:date row)) :width 90})))
+
+(defn to-table-data [data]
+  (mapv (fn [[k v]]
+          (assoc v :date (name k))) (:rates data)))
 
 (defn spread-colls
   [& colls]
   (vec (apply concat colls)))
+
+(defn format-date [date-str]
+  (->> date-str
+       str
+       (f/parse (f/formatter "yyyyMMdd'T'HHmmss"))
+       (f/unparse (f/formatter "yyyy-MM-dd"))))
+

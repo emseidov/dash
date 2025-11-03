@@ -9,17 +9,49 @@
 
 (declare show-widget-modal-button widget-map)
 
+(defn table-widget [{:keys [id]}]
+  (r/with-let [set-data-args (fn [args caller-id]
+                               (rf/dispatch [:set-data-args id caller-id args]))
+               fetch (fn []
+                       (let [data-args @(rf/subscribe [:data-args])
+                             settings @(rf/subscribe [:settings])
+                             uri (get-in settings [:api id])]
+                         (println "table-fetch" data-args)
+                         (rf/dispatch [:fetch-api-data uri (get data-args id) id])))]
+    (r/create-class
+     {:component-did-mount
+      (fn [this]
+        (let [{:keys [reg-event reg-handler id]} (r/props this)]
+          (reg-handler {:key "set-data-args"
+                        :fn set-data-args
+                        :widget-id id})
+          (reg-handler {:key "fetch"
+                        :fn fetch
+                        :widget-id id})))
+      :reagent-render
+      (fn [{:keys [id]}]
+        (let [data @(rf/subscribe [:api-data id])
+              columns (u/to-table-columns data)
+              model (r/reaction (u/to-table-data data))]
+          (if  (seq data)
+            [rc/simple-v-table
+             :class "table-widget"
+             :columns columns
+             :model model]
+            [:div.table-loading-placeholder])))})))
+
 (defn datepicker-widget [{:keys [id]}]
   (r/with-let [model (r/atom nil)
-               handle-change-date (r/atom (fn [date]
-                                            (reset! model date)))
+               date-object (atom nil)
+               handle-change-date (r/atom (fn []
+                                            (reset! model @date-object)))
                log (fn []
                      (println "Hello from datepicker-widget reg-handler" @model))]
     (r/create-class
      {:component-did-mount
       (fn [this]
         (let [{:keys [id reg-event reg-handler]} (r/props this)]
-          (reset! handle-change-date (reg-event {:key "on-change-date"
+          (reset! handle-change-date (reg-event {:key "on-change"
                                                  :fn @handle-change-date
                                                  :widget-id id}))
           (reg-handler {:key "log"
@@ -29,14 +61,17 @@
       (fn []
         [rc/datepicker-dropdown
          :class "datepicker-widget"
+         :format "yyyy-MM-dd"
          :model model
-         :on-change #(@handle-change-date %)])})))
+         :on-change (fn [date]
+                      (reset! date-object date)
+                      (@handle-change-date (u/format-date date)))])})))
 
 (defn button-widget [{:keys [id]}]
   (r/with-let [handle-click (r/atom (fn []
                                       (println "Hello from button-widget reg-event!")))
-               set-data-args (fn [args]
-                               (rf/dispatch [:set-data-args id args]))
+               set-data-args (fn [args caller-id]
+                               (rf/dispatch [:set-data-args id caller-id args]))
                log-args (fn [args]
                           (let [data-args @(rf/subscribe [:data-args])
                                 widget-data-args (get data-args id)]
@@ -68,9 +103,10 @@
                set-data-args (fn [args]
                                (rf/dispatch [:set-data-args id args]))
                fetch (fn []
-                       (let [settings (rf/subscribe [:settings])
-                             uri (get-in @settings [:api id])]
-                         (rf/dispatch [:fetch-api-data uri id])))]
+                       (let [data-args @(rf/subscribe [:data-args])
+                             settings @(rf/subscribe [:settings])
+                             uri (get-in settings [:api id])]
+                         (rf/dispatch [:fetch-api-data uri (get data-args id) id])))]
     (r/create-class
      {:component-did-mount
       (fn [this]
@@ -110,7 +146,8 @@
   {:container container-widget
    :dropdown dropdown-widget
    :button button-widget
-   :datepicker datepicker-widget})
+   :datepicker datepicker-widget
+   :table table-widget})
 
 (defn save-settings-button [{:keys [on-click]}]
   (let [handle-click #(on-click)]
@@ -183,10 +220,13 @@
       :on-change #(handle-select-handler %)]]))
 
 (defn event-selector [{:keys [widget-id action action-idx events on-select-event]}]
-  (let [model (as-> (:event action) %
-                (:name %)
-                (hash-map :name % :widget-id widget-id)
-                (hash-set %))]
+  (prn "action" action)
+  (let [model (if (= widget-id (get-in action [:event :widget-id]))
+                (as-> (:event action) %
+                  (:name %)
+                  (hash-map :name % :widget-id widget-id)
+                  (hash-set %))
+                #{})]
     [:div.event-selector
      widget-id
      [rc/selection-list
@@ -347,13 +387,18 @@
                             events-and-handlers @(rf/subscribe [:events-and-handlers])
                             action (some #(when (= widget-id (get-in % [:event :widget-id])) %) actions)
                             active-event (get-in events-and-handlers [widget-id :events key])
-                            active-handlers (->> events-and-handlers
-                                                 (filter #(contains? (:handlers action) (first %)))
-                                                 (mapcat (comp vals :handlers second)))]
+                            filtered-events-and-handlers (filter #(contains? (:handlers action) (first %)) events-and-handlers)
+                            active-handlers (map (fn [[widget-id evt-and-handlrs]]
+                                                   (filter (fn [[handlr-name]]
+                                                             (some #(= % handlr-name) (get (:handlers action) widget-id))) (:handlers evt-and-handlrs))) filtered-events-and-handlers)]
+;; (mapcat (comp vals :handlers second))
+;; 
+                        (prn action)
+                        (prn "active-handlers" active-handlers)
                         (when active-event
                           ((:fn active-event) args))
-                        (doseq [handler active-handlers]
-                          ((:fn handler) args)))))
+                        (doseq [[[_ handler]]  active-handlers]
+                          ((:fn handler) args widget-id)))))
         reg-handler #(rf/dispatch [:reg-handler %])
         props {:reg-event reg-event
                :reg-handler reg-handler}
