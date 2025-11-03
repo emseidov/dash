@@ -2,7 +2,11 @@
 
 Programmable UI and dashboard builder, inspired by Lisp macros, code that writes code, but visual.
 
-<https://github.com/emseidov/dash/raw/main/resources/public/demo.mp4>
+
+
+https://github.com/user-attachments/assets/95e5ed55-55e0-4311-a440-adaba63c6b52
+
+
 
 ## Notes
 
