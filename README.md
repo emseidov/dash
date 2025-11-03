@@ -19,10 +19,9 @@ For more info check: <https://frankfurter.dev/>
 
 ## Notes
 
-The application is built using [day8 re-frame template](https://github.com/day8/re-frame-template) to avoid spending time on configuration. My goal was to demonstrate solid understanding of Clojure and re-frame, and show ability to design and implement complex applications. For this reason, I didn't spend any time on polishing the UI.
+- The application is built using [day8 re-frame template](https://github.com/day8/re-frame-template) to avoid spending time on configuration. My goal was to demonstrate solid understanding of Clojure and re-frame, and show ability to design and implement complex applications. For this reason, I didn't spend any time on polishing the UI.
 
-- I also wanted to add a small DSL so that user could transform the API responses in the consif, and make them
-  compatible with the widget's expected date shape, but ran out of time. For now use `to-<widget-name>-data` utils
+- I also wanted to add a small DSL so that user could transform the API responses in the widget config (settings modal), and make them compatible with the widget's expected data shape, but ran unfortunately out of time. For now use `to-<widget-name>-data` utils
   for transforming API responses.
 
 ## To run application
