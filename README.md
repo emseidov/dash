@@ -10,7 +10,6 @@ The parsed table-widget args from the video:
 Data args, action connections, and all can be seen in the re-frisk devtools:
 <img width="567" height="826" alt="Screenshot 2025-11-03 at 10 41 30" src="https://github.com/user-attachments/assets/659b6d6d-4693-4b21-be4f-a00044856c50" />
 
-
 endpoints used in the demo:
 
 - `https://api.frankfurter.dev/v1/currencies` for dropdown-widget
@@ -19,6 +18,10 @@ endpoints used in the demo:
 ## Notes
 
 The application is built using [day8 re-frame template](https://github.com/day8/re-frame-template) to avoid spending time on configuration. My goal was to demonstrate solid understanding of Clojure and re-frame, and show ability to design and implement complex applications. For this reason, I didn't spend any time on polishing the UI.
+
+- I also wanted to add a small DSL so that user could transform the API responses in the consif, and make them
+  compatible with the widget's expected date shape, but ran out of time. For now use `to-<widget-name>-data` utils
+  for transforming API responses.
 
 ## To run application
 

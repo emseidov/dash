@@ -16,12 +16,11 @@
                        (let [data-args @(rf/subscribe [:data-args])
                              settings @(rf/subscribe [:settings])
                              uri (get-in settings [:api id])]
-                         (println "table-fetch" data-args)
                          (rf/dispatch [:fetch-api-data uri (get data-args id) id])))]
     (r/create-class
      {:component-did-mount
       (fn [this]
-        (let [{:keys [reg-event reg-handler id]} (r/props this)]
+        (let [{:keys [reg-handler id]} (r/props this)]
           (reg-handler {:key "set-data-args"
                         :fn set-data-args
                         :widget-id id})
@@ -42,7 +41,7 @@
             [:div.table-no-data
              [:span "No Data to Show!"]])))})))
 
-(defn datepicker-widget [{:keys [id]}]
+(defn datepicker-widget [{:keys []}]
   (r/with-let [model (r/atom nil)
                date-object (atom nil)
                handle-change-date (r/atom (fn []
@@ -75,10 +74,8 @@
                                       (println "Hello from button-widget reg-event!")))
                set-data-args (fn [args caller-id]
                                (rf/dispatch [:set-data-args id caller-id args]))
-               log-args (fn [args]
-                          (let [data-args @(rf/subscribe [:data-args])
-                                widget-data-args (get data-args id)]
-                            (println widget-data-args args)))]
+               log-args (fn []
+                          ())]
     (r/create-class
      {:component-did-mount
       (fn [this]
@@ -99,6 +96,12 @@
          :label "Submit"
          :on-click #(@handle-click)])})))
 
+;; These will be improved
+;; 1. I saw rf/subscribe warning outside of render context late
+;;    and didn't have enough time to come with a new solution, but I have few ideas.
+;; 2. Will get rid of create class and event-register r/atom usage. I use r/atoms
+;;    only for draft-states, so that I don't trigger rerenders on subscribers 
+;;    for temporary states.
 (defn dropdown-widget [{:keys [id]}]
   (r/with-let [model (r/atom nil)
                handle-change (r/atom (fn [choice]
@@ -223,7 +226,6 @@
       :on-change #(handle-select-handler %)]]))
 
 (defn event-selector [{:keys [widget-id action action-idx events on-select-event]}]
-  (prn "action" action)
   (let [model (if (= widget-id (get-in action [:event :widget-id]))
                 (as-> (:event action) %
                   (:name %)
@@ -400,14 +402,11 @@
                             events-and-handlers @(rf/subscribe [:events-and-handlers])
                             action (some #(when (= widget-id (get-in % [:event :widget-id])) %) actions)
                             active-event (get-in events-and-handlers [widget-id :events key])
+                            ;; Last minute bug fix at 4 AM :D I will write those properly
                             filtered-events-and-handlers (filter #(contains? (:handlers action) (first %)) events-and-handlers)
                             active-handlers (map (fn [[widget-id evt-and-handlrs]]
                                                    (filter (fn [[handlr-name]]
                                                              (some #(= % handlr-name) (get (:handlers action) widget-id))) (:handlers evt-and-handlrs))) filtered-events-and-handlers)]
-;; (mapcat (comp vals :handlers second))
-;; 
-                        (prn action)
-                        (prn "active-handlers" active-handlers)
                         (when active-event
                           ((:fn active-event) args))
                         (doseq [[[_ handler]]  active-handlers]

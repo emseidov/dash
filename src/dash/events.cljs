@@ -59,9 +59,7 @@
 (rf/reg-event-fx
  :fetch-api-data
  (fn [_ [_ uri args widget-id]]
-   (prn "ARGSSS" (vec (vals args)))
    (let [formatted-uri (u/fill-args uri (vec (vals args)))]
-     (prn ":fech-api-data" formatted-uri uri args)
      {:http-xhrio {:method :get
                    :uri formatted-uri
                    :response-format (ajax/json-response-format {:keywords? true})

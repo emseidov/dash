@@ -37,30 +37,8 @@
   (map (fn [[k v]]
          {:id (name k) :label (str (name k) " - " v)}) data))
 
-(def data {"base" "EUR"
-           "start_date" "1999-12-30"
-           "end_date" "2000-12-29"
-           :rates {"1999-12-30" {"AUD" 1.5422
-                                 "CAD" 1.4608
-                                 "CHF" 1.6051
-                                 "CYP" 0.57667},
-                   "2000-01-03" {"AUD" 1.5346
-                                 "CAD" 1.4577
-                                 "CHF" 1.6043
-                                 "CYP" 0.5767}}})
-
-;; {:id :date :label "date" :row-label-fn (fn [row] (:date))}
-;; {id: :AUD :label AUD :row-label-fn (fn [row] (:AUD))}
-;;
-;; {:date 2000-01-03 AUD: 1.5346 }
-;; (conj (map (fn [[k]]
-;;          {:id k :label k :row-label-fn (fn [row] (k row))})
-;;        (second (first (:rates data)))) {:id :date})
-;;
-;; (map (fn [[k v]]
-;;        v) (:rates data))
-(conj '(1 2 3) 4)
 (defn to-table-columns [data]
+  ;; Last minute bug fix at 4 AM. I will write those properly
   (vec (conj  (map (fn [[k]]
                      {:id k :header-label (name k) :row-label-fn (fn [row] (k row)) :width 65})
                    (second (first (:rates data))))
