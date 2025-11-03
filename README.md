@@ -15,6 +15,8 @@ endpoints used in the demo:
 - `https://api.frankfurter.dev/v1/currencies` for dropdown-widget
 - `https://api.frankfurter.dev/v1/{arg1}..{arg2}?base={arg3}` for table-widget
 
+For more info check: <https://frankfurter.dev/>
+
 ## Notes
 
 The application is built using [day8 re-frame template](https://github.com/day8/re-frame-template) to avoid spending time on configuration. My goal was to demonstrate solid understanding of Clojure and re-frame, and show ability to design and implement complex applications. For this reason, I didn't spend any time on polishing the UI.
