@@ -75,7 +75,7 @@ body,
     border-radius: var(--radius-sm);
     gap: var(--space-sm);
     height: calc(100% - 76px);
-    padding: var(--space-xs);
+    padding: var(--space-sm);
 
     &.edit-mode {
       background-color: var(--light-pink);
@@ -89,32 +89,51 @@ body,
   .widget-modal {
   }
 
+  .widget-list-title {
+    margin-top: 0 !important;
+    margin-bottom: 10px !important;
+    font-size: 20px !important;
+  }
   .widget-list {
     height: var(--size-2xl);
     width: var(--size-2xl);
   }
 
   .add-widget-btn {
+    width: 100px;
+    margin-top: var(--space-md);
+    margin-left: 298px;
   }
 
   .action-modal {
   }
 
   .action-connector {
-    height: var(--size-2xl);
-    width: var(--size-2xl);
+    height: var(--size-3xl);
+    width: var(--size-3xl);
+
+    > :nth-child(2) {
+      align-items: inherit;
+    }
   }
 
   .create-action-btn {
   }
 
   .action-selector {
-    &:nth-child(1) {
-      margin-left: var(--space-sm);
+    padding-left: 4px;
+    padding-top: 4px;
+
+    > :nth-child(1) {
+      margin-left: 20px;
     }
-    &:nth-child(2) {
-      margin-left: var(--space-lg);
+    > :nth-child(2) {
+      margin-left: 40px;
     }
+  }
+
+  .events-and-handlers-view {
+    height: 568px;
   }
 
   .event-selector {
@@ -124,6 +143,8 @@ body,
   }
 
   .save-actions-btn {
+    width: 100px;
+    margin-left: 242px;
   }
 
   .context-menu {
@@ -168,6 +189,9 @@ body,
   }
 
   .api-settings-field {
+    > span {
+      margin-right: 10px;
+    }
   }
 
   .save-settings-btn {
@@ -187,17 +211,27 @@ body,
   }
 
   .button-widget {
+    width: 120px;
   }
 
   .datepicker-widget {
   }
-
-  .table-widget {
+  div:has(> .rc-datepicker-dropdown-wrapper) {
+    height: 32px !important;
   }
 
-  .table-loading-placeholder {
-    height: 400px;
-    width: 500px;
+  .table-widget {
+    min-height: 526px !important;
+    max-height: 420px !important;
+    width: 1100px;
+  }
+
+  .table-no-data {
+    height: 560px;
+    width: 1000px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
   /* .rc-datepicker-dropdown-wrapper { */

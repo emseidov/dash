@@ -33,12 +33,14 @@
         (let [data @(rf/subscribe [:api-data id])
               columns (u/to-table-columns data)
               model (r/reaction (u/to-table-data data))]
+
           (if  (seq data)
             [rc/simple-v-table
              :class "table-widget"
              :columns columns
              :model model]
-            [:div.table-loading-placeholder])))})))
+            [:div.table-no-data
+             [:span "No Data to Show!"]])))})))
 
 (defn datepicker-widget [{:keys [id]}]
   (r/with-let [model (r/atom nil)
@@ -60,6 +62,7 @@
       :reagent-render
       (fn []
         [rc/datepicker-dropdown
+         :width "260px"
          :class "datepicker-widget"
          :format "yyyy-MM-dd"
          :model model
@@ -305,24 +308,29 @@
                                             :idx idx
                                             :on-click-events handle-show-events
                                             :on-click-handlers handle-show-handlers}]) @draft-actions)]
-      [rc/h-box
-       :class "action-connector"
-       :justify :between
-       :children [[rc/v-box
-                   :children (u/spread-colls [[create-action-button
-                                               {:on-click handle-create-action}]]
-                                             action-selectors)]
-                  [rc/v-box
-                   :children [[event-and-handler-selector
-                               {:show @show
-                                :action-idx @curr-action-idx
-                                :action (get @draft-actions @curr-action-idx)
-                                :events-and-handlers events-and-handlers
-                                :on-select-event handle-select-event
-                                :on-select-handler handle-select-handler}]
-                              [rc/h-box
-                               :children [[save-actions-button
-                                           {:on-click handle-save-actions}]]]]]]])))
+      [:<>
+       [rc/title
+        :class "widget-list-title"
+        :label "Actions"
+        :level :level2]
+       [rc/h-box
+        :class "action-connector"
+        :justify :between
+        :children [[rc/v-box
+                    :children (u/spread-colls [[create-action-button
+                                                {:on-click handle-create-action}]]
+                                              action-selectors)]
+                   [rc/v-box
+                    :children [[event-and-handler-selector
+                                {:show @show
+                                 :action-idx @curr-action-idx
+                                 :action (get @draft-actions @curr-action-idx)
+                                 :events-and-handlers events-and-handlers
+                                 :on-select-event handle-select-event
+                                 :on-select-handler handle-select-handler}]
+                               [rc/h-box
+                                :children [[save-actions-button
+                                            {:on-click handle-save-actions}]]]]]]]])))
 
 (defn action-modal []
   (let [handle-hide #(rf/dispatch [:set-show-action-modal false])]
@@ -340,12 +348,17 @@
 
 (defn widget-list [{:keys [model choices on-change]}]
   (let [handle-change #(on-change %)]
-    [rc/selection-list
-     :class "widget-list"
-     :choices choices
-     :model model
-     :multi-select? false
-     :on-change handle-change]))
+    [:div
+     [rc/title
+      :class "widget-list-title"
+      :label "Widgets"
+      :level :level2]
+     [rc/selection-list
+      :class "widget-list"
+      :choices choices
+      :model model
+      :multi-select? false
+      :on-change handle-change]]))
 
 (defn widget-modal []
   (r/with-let [current-parent-id @(rf/subscribe [:current-parent-id])
